@@ -1,0 +1,514 @@
+---
+title: 'Data Visualizations, by Figure #'
+author: "Britta Schumacher"
+date: "Last updated: `r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  html_document:
+    theme: yeti
+    toc: yes
+    toc_float: true
+---
+
+## Load relevant packages
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(ggpubr)
+library(sf)
+
+
+# notes from EB
+project_theme <- theme_bw() +
+  theme(text = element_text(size=8))
+
+ggarrange(tfp, use, ncol = 2, labels = c('A.', 'B.'),
+          font.label = list(size = 8))
+ggsave("./figs/tfp.png", dpi = 400, width = 200, height = 80, units = "mm")
+
+```
+
+### Figure 1: The nine US Farm Resource Regions delineated by the USDA ERS (2000). 
+
+
+### Figure 2. (A.) US farms, land in farms, and average farm size from 1850 to 2017. The vertical line in 1978 reflects USDA-NASS implementation of adjustments for under-coverage. Data: Robert Hoppe, USDA ERS. (B.) Number of agricultural jobs from 1969 to 2019. Data: US BEA.
+
+```{r}
+# US land assets, historical data from Robert Hoppe at the USDA ERS
+
+land <- read.csv("./data/ERS-farmop.csv")
+
+land_assets <- land %>% 
+   filter(YEAR %in% c(1850:2012,2017,2020)) %>% 
+  select(1:4) %>% 
+   pivot_longer(cols = 2:4, names_to = "variable", values_to = "value") %>% 
+ggplot(.) +
+  geom_line(aes(x = YEAR, y = value, color = variable), alpha = 0.8, size = 1.3) +
+  project_theme +
+  scale_color_manual(values = c("#DDCC77","#117733","#332288")) +
+  labs(title = "", color = "", y = "", x = "") +
+  annotate("text", x = c(1957,1987,1965), y = c(6.4,5.1,1.75), label = c("Farms (millions)", "Average farm size\n(hundred acres/farm)", "Land in farms\n(billion acres)"), size = 2.5) + 
+  scale_x_continuous(breaks = seq(1850, 2020, by = 20)) +
+  scale_y_continuous(breaks=c(0,2,4,6,8)) +
+  coord_cartesian(xlim = c(1858,2012), ylim = c(0.35,7.5)) +
+  theme(legend.position="") +
+  geom_vline(xintercept=c(1997), linetype="dotted") 
+
+# US employment in agriculture
+bea <- readRDS("./data/bea.RDS")
+bea$YEAR <- as.numeric(bea$YEAR)
+
+employ <- bea %>% filter(GeoName == "United States") %>% select(c(2,44:45))
+
+paste_noNA <- function(x,sep=", ") {
+gsub(", " ,sep, toString(x[!is.na(x) & x!="" & x!="NA"] ) ) }
+
+employ$farmempl <- as.numeric(apply(employ[c(2:3)],1,paste_noNA))
+
+employment <- employ %>% 
+ggplot(.) +
+  geom_line(aes(x = YEAR, y = farmempl),color = "#88CCEE", size = 1.3) +
+  project_theme +
+  labs(title = "", color = "", x = "", y = "Number of jobs (in millions)") +
+  scale_y_continuous(breaks=c(3000000,3500000,4000000),
+        labels=c("3.0", "3.5", "4.0"))
+
+
+ggarrange(land_assets, employment, ncol = 2, labels = c('A.', 'B.'),
+          font.label = list(size = 8))
+ggsave("./viz/Figure2.png", dpi = 400, width = 200, height = 80, units = "mm")
+
+```
+
+### Figure 3. (A.) The average age of primary operators from 1940 to 2017. (B.) The number of US farms with primary operators identifying as Black (red), white (blue), and members of all other races (yellow) from 1900 to 2017. For scale, it is important to note that farms operated by Black operators and members of all other races are shown in hundred thousands, while white operated farms are shown in millions. (C.) Number of primary operators by reported gender, shown in hundred thousands; overlayed with percent female primary operators. The USDA began statistical adjustments for under coverage in 1997, reflected in the vertical change (dotted vertical line) in average age in 1997 from 54.3 (unadjusted) to 54.0 (adjusted). Data: Compiled by Robert Hoppe of the USDA Economic Research Service and shared with the authors.
+```{r}
+h <- read.csv("./data/historical-coa.csv")
+
+project_theme <- theme_bw() +
+  theme(text = element_text(size=10))
+
+# Average Operator Age
+age <- h %>% 
+  ggplot(.) +
+  geom_line(aes(x = year, y = ave_age), color = "#88CCEE", size = 1.5) +
+  project_theme +
+  labs(title = "", color = "", y = "Average Age", x = "") +
+  coord_cartesian(xlim = c(1940,2017)) +
+  geom_vline(xintercept=c(1997), linetype="dotted") 
+
+# Farm operators by race through time
+race <- h %>% filter(!is.na(black)) %>% 
+  ggplot(.) +
+  geom_line(aes(x = year, y = white/1000000, color = "White operators (in 1Ms)"), size = 1, linetype = "longdash") +
+  geom_line(aes(x = year, y = black/100000, color = "Black operators (in 100ks)"), size = 1, linetype = "longdash") +
+  geom_line(aes(x = year, y = other/100000, color = "All Other Races operators (in 100ks)"), size = 1, linetype = "longdash") +
+  project_theme +
+  labs(title = "", color = "", y = "Number of Operators", x = "") +
+  scale_color_manual(name="",values = c("White operators (in 1Ms)" = "#88CCEE", "Black operators (in 100ks)" = "#CC6677", "All Other Races operators (in 100ks)" = "#DDCC77")) +
+  coord_cartesian(xlim = c(1900,2017)) +
+  geom_vline(xintercept=c(1997), linetype="dotted") +
+    theme(legend.position="right") 
+
+
+# Number of Farm operators by sex through time
+
+sex <- h %>%
+  select(year, male, female) %>% filter (!is.na(female)) %>% mutate(perc = female/male*100) %>% 
+  pivot_longer(-c(year, perc), names_to = "variable", values_to = "count") %>% 
+ggplot(.) +
+  geom_bar(aes(fill=variable, y=count/100000, x=year), position="dodge", stat="identity") +
+  geom_line(aes(x = year, y = perc, color = "% Female Primary Operators"), stat = "identity", size = 1.5) +
+  project_theme +
+  scale_fill_manual(name="",labels = c("Female", "Male"), values = c("#44AA99", "#332288")) +
+  scale_color_manual(name="",values = c("% Female Primary Operators" = "#DDCC77")) +
+  geom_vline(xintercept=c(1997), linetype="dotted") +
+  theme(legend.position="right") +
+  labs(title = "", y = "Number of Primary Operators", x = "") 
+
+ggarrange(age, race, sex, nrow = 3, labels = c('A.', 'B.', 'C.'),
+          font.label = list(size = 8))
+ggsave("./viz/Figure3.png", dpi = 400, width = 180, height = 240, units = "mm")
+
+```
+
+# Pull in theme for maps
+```{r}
+theme_map <- function(...) {
+  theme_minimal() +
+  theme(
+    # remove all axes
+    axis.line = element_blank(),
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks = element_blank(),
+
+    # borders and margins
+    panel.border = element_blank(),
+    
+    # titles
+    legend.title = element_blank(),
+    legend.text = element_text(size = 7, hjust = 0,
+                               color = "black"),
+    plot.title = element_text(size = 15, hjust = 0.5,
+                              color = "black"),
+    plot.subtitle = element_text(size = 10, hjust = 0.5,
+                                 color = "black",
+                                 margin = margin(b = -0.1,
+                                                 t = -0.1,
+                                                 l = 2,
+                                                 unit = "cm"),
+                                 debug = F),
+    ...
+  )
+}
+```
+
+
+Figure 4. Percent primary operators identifying as (A.) Black, (B.) Hispanic, (C.) white, and (D.) female in 2017.  Data: USDA QuickStats, 2017 COA.
+
+```{r}
+# load data
+c <- readRDS("./data/contemp-coa.RDS")
+r <- readRDS("./data/coa-race.RDS")
+counties <- readRDS("./data/coterm_cty_sf.RDS") 
+states <- readRDS("./data/states_sf.RDS") 
+states <- states %>% filter(STATE_FIPS %in% counties$STATEFP)
+
+# Build spatial
+c_sf <- merge(counties, c, by = "GEOID")
+
+
+# proporation of each race
+race_prop <- r %>% mutate(TOTAL = rowSums(.[7:13])) %>% 
+  mutate(POC = (NATIVE_AMER + BLACK + MULTI + HISPANIC + ASIAN + PACIFIC_ISL)/TOTAL*100,
+         NATIVE_AMER = NATIVE_AMER/TOTAL*100,
+         BLACK = BLACK/TOTAL*100,
+         MULTI = MULTI/TOTAL*100,
+         WHITE = WHITE/TOTAL*100,
+         HISPANIC = HISPANIC/TOTAL*100,
+         ASIAN = ASIAN/TOTAL*100,
+         PACIFIC_ISL = PACIFIC_ISL/TOTAL*100) %>% 
+  filter(OPERATOR == "OPERATORS, PRINCIPAL") %>% 
+  select("GEOID", "YEAR", "OPERATOR", "TYPE", "WHITE", "POC", "NATIVE_AMER", "BLACK", "MULTI", "HISPANIC", "ASIAN", "PACIFIC_ISL", "TOTAL") %>% 
+  mutate_at(7:13, round, 3)
+
+# build spatial
+r_sf <- merge(counties, race_prop, by = "GEOID") 
+
+############################################################
+# Percent operators identifying as female
+############################################################
+
+fem_operators <- c_sf %>% select(c(1,10:11,31)) %>% filter(!is.na(percf_operators))
+
+### Extract quantiles; use these to estimate quantiles, below!
+q <- fem_operators %>% 
+  pull(percf_operators) %>%
+  quantile(probs = seq(0, 1, length.out = 7), na.rm = T) %>%
+  as.vector() # to remove names of quantiles, so idx below is numeric
+
+### What are the quantiles?
+quantiles <- c(6,22.5,27.5,30,35,40,86)
+
+### Create custom labels
+labels <- c("0 – 22.5%",      "22.5 – 27.5%",    "27.5 – 30.0%",    "30.0 – 35.0%",   "35.0 – 40.0%",  "> 40.0%")
+
+### Create a new variable with the quantiles
+df <- fem_operators %>%
+  mutate(mean_quantiles = cut(percf_operators,
+                               breaks = quantiles,
+                               labels = labels,
+                               include.lowest = T)) %>% 
+  filter(!is.na(percf_operators)) 
+
+### PLOT
+# Percent female operators - 2017
+female_operators <- ggplot(data = df) +
+  geom_sf(mapping = aes(fill = mean_quantiles),color = "transparent",size = 0.01) +
+  geom_sf(data = states, fill = "transparent", color = "dark gray") +
+  scale_fill_brewer(palette = "Greens") +
+ theme_map() +
+    theme(panel.grid.major = element_line(colour = "white"), legend.position="bottom",
+          legend.key.size = unit(2, 'mm')) 
+
+
+############################################################
+# Percent black, hispanic and white operators
+############################################################
+
+### Extract quantiles; use these to estimate quantiles, below!
+q <- r_sf %>% filter(YEAR == 2017, TYPE == "OPERATORS") %>% 
+  pull(WHITE) %>%
+  quantile(probs = seq(0, 1, length.out = 7), na.rm = T) %>%
+  as.vector() 
+
+### What are the quantiles?
+q_h <- c(0,0.25,0.5,1.0,2.5,5.0,56)
+q_b <- c(0,0.25,0.5,1.0,2.5,5.0,56)
+q_w <- c(0,85,90,95,97.5,98.5,100.1)
+
+### Create custom labels
+l_h <- c("0 - 0.25%",      "0.25 - 0.5%",    "0.5 - 1.0%",    "1.0 - 2.5%",   "2.5 - 5.0%",  "> 5.0%")
+l_b <- c("0 - 0.25%",      "0.25 - 0.5%",    "0.5 - 1.0%",    "1.0 - 2.5%",   "2.5 - 5.0%",  "> 5.0%")
+l_w <- c("0 - 85.0%",    "85.0 - 90.0%",    "90.0 - 95.0%",   "95.0 - 97.5%",   "97.5 - 98.5%",  "> 98.5%")
+
+### Create a new variable with the quantiles
+df <- r_sf %>%
+  mutate(mean_quantiles = cut(HISPANIC,
+                               breaks = q_h,
+                               labels = l_h,
+                               include.lowest = T)) %>% 
+  filter(!is.na(HISPANIC)) %>% 
+  filter(YEAR == 2017, TYPE == "OPERATORS") 
+
+### PLOT
+# Percent HISPANIC operators - 2017
+hisp_operators <- ggplot(data = df) +
+  geom_sf(mapping = aes(fill = mean_quantiles),color = "transparent",size = 0.01) +
+  geom_sf(data = states, fill = "transparent", color = "dark gray") +
+  scale_fill_brewer(palette = "Purples") +
+ theme_map() +
+    theme(panel.grid.major = element_line(colour = "white"), legend.position="bottom",
+          legend.key.size = unit(2, 'mm')) 
+
+### Create a new variable with the quantiles
+df <- r_sf %>%
+  mutate(mean_quantiles = cut(BLACK,
+                               breaks = q_b,
+                               labels = l_b,
+                               include.lowest = T)) %>% 
+  filter(!is.na(BLACK)) %>% 
+  filter(YEAR == 2017, TYPE == "OPERATORS") 
+
+### PLOT
+# Percent BLACK operators - 2017
+black_operators <- ggplot(data = df) +
+  geom_sf(mapping = aes(fill = mean_quantiles),color = "transparent",size = 0.01) +
+  geom_sf(data = states, fill = "transparent", color = "dark gray") +
+  scale_fill_brewer(palette = "Oranges") +
+ theme_map() +
+    theme(panel.grid.major = element_line(colour = "white"), legend.position="bottom",
+          legend.key.size = unit(2, 'mm')) 
+
+### Create a new variable with the quantiles
+df <- r_sf %>%
+  mutate(mean_quantiles = cut(WHITE,
+                               breaks = q_w,
+                               labels = l_w,
+                               include.lowest = T)) %>% 
+  filter(!is.na(WHITE)) %>% 
+  filter(YEAR == 2017, TYPE == "OPERATORS") 
+
+### PLOT
+# Percent WHITE operators - 2017
+white_operators <- ggplot(data = df) +
+  geom_sf(mapping = aes(fill = mean_quantiles),color = "transparent",size = 0.01) +
+  geom_sf(data = states, fill = "transparent", color = "dark gray") +
+  scale_fill_brewer(palette = "Reds") +
+ theme_map() +
+    theme(panel.grid.major = element_line(colour = "white"), legend.position="bottom",
+          legend.key.size = unit(2, 'mm')) 
+
+# Build panel plots!
+# (A.) Black, (B.) Hispanic, (C.) white and (D.) female operators
+ggarrange(black_operators, hisp_operators, white_operators, female_operators, labels = c("A.", "B.", "C.", "D."), ncol = 2, nrow = 2, font.label = list(size = 8))
+ggsave("./viz/Figure4.png", dpi = 400, width = 180, height = 120, units = "mm")
+
+```
+
+
+### Figure 5: A. Percent agricultural acres operated by principal operators who own the land they work in 2017. B. Percent agricultural acres operated by principal operators who rent the land they work (i.e. tenants) in 2017. Data: USDA QuickStats, 2017 COA.
+```{r}
+############################################################
+# Tenancy as % agricultural acres rented in 2017
+############################################################
+tenant <- c_sf %>% select(c(1,10,26:28)) %>% 
+  mutate(perc_rent = tenant/(tenant+part_owner+full_owner)*100)
+
+### Extract quantiles; use these to estimate quantiles, below!
+q <- tenant %>% filter(year == 2017) %>% 
+  pull(perc_rent) %>%
+  quantile(probs = seq(0, 1, length.out = 7), na.rm = T) %>%
+  as.vector() # to remove names of quantiles, so idx below is numeric
+
+### What are the quantiles?
+quantiles <- c(0,2,3.5,5.5,7.5,15,70)
+
+### Create custom labels
+labels <- c("0 - 2.0%",      "2.0 - 3.5%",    "3.5 – 5.5%",    "5.5 - 7.5%",   "7.5 - 15.0%",  "> 15.0%")
+
+### Create a new variable with the quantiles
+df <- tenant %>%
+  mutate(mean_quantiles = cut(perc_rent,
+                               breaks = quantiles,
+                               labels = labels,
+                               include.lowest = T)) %>% 
+  filter(!is.na(perc_rent)) %>% 
+  filter(year == 2017) 
+
+### PLOT
+# Percent tenants - 2017
+tenants <- ggplot(data = df) +
+  geom_sf(mapping = aes(fill = mean_quantiles),color = "transparent",size = 0.01) +
+  geom_sf(data = states, fill = "transparent", color = "dark gray") +
+  scale_fill_brewer(palette = "PuBuGn") +
+ theme_map() +
+    theme(panel.grid.major = element_line(colour = "white"), 
+          legend.position="bottom",
+          legend.key.size = unit(2, 'mm')) 
+
+############################################################
+# Tenancy as % agricultural acres owned in 2017
+############################################################
+own <- c_sf %>% select(c(1,10,26:28)) %>% 
+  mutate(perc_own = full_owner/(tenant+part_owner+full_owner)*100)
+
+### Extract quantiles; use these to estimate quantiles, below!
+q <- own %>% filter(year == 2017) %>% 
+  pull(perc_own) %>%
+  quantile(probs = seq(0, 1, length.out = 7), na.rm = T) %>%
+  as.vector() # to remove names of quantiles, so idx below is numeric
+
+### What are the quantiles?
+quantiles <- c(0,20,30,40,50,60,98)
+
+### Create custom labels
+labels <- c("0 - 20%",      "20 - 30%",    "30 – 40%",    "40 - 50%",   "50 - 60%",  "> 60%")
+
+### Create a new variable with the quantiles
+df <- own %>%
+  mutate(mean_quantiles = cut(perc_own,
+                               breaks = quantiles,
+                               labels = labels,
+                               include.lowest = T)) %>% 
+  filter(!is.na(perc_own)) %>% 
+  filter(year == 2017) 
+
+### PLOT
+# Percent tenants - 2017
+owners <- ggplot(data = df) +
+  geom_sf(mapping = aes(fill = mean_quantiles),color = "transparent",size = 0.01) +
+  geom_sf(data = states, fill = "transparent", color = "dark gray") +
+  scale_fill_brewer(palette = "YlOrRd") +
+ theme_map() +
+    theme(panel.grid.major = element_line(colour = "white"), 
+          legend.position="bottom",
+          legend.key.size = unit(2, 'mm')) 
+
+# Build panel plots!
+# (A.) % full owners, (B.) % tenants
+ggarrange(owners, tenants, labels = c("A.", "B."), ncol = 2, font.label = list(size = 8))
+ggsave("./viz/Figure5.png", dpi = 400, width = 200, height = 80, units = "mm")
+
+```
+
+### Figure 6: Proportion ownership of land by race from 1900 to 2017. In each year the left column shows the proportion of land owned and rented by POC, and the right, by White operators. Due to data limitations (i.e. historical lack of intersectionality in data collection) we can only visualize White versus all Other races. Data: Robert Hoppe, USDA ERS.
+
+```{r}
+# White v. Nonwhite ownership/tenancy
+t <- h %>% select(1,12:17) %>% filter(!is.na(w_tenant)) %>% 
+  pivot_longer(!c(1), names_to = "tenancy", values_to = "count") %>% 
+  mutate(
+    race = case_when(
+      tenancy %in% c("w_fullowner","w_partowner","w_tenant") ~ "White",
+      tenancy %in% c("nw_fullowner","nw_partowner","nw_tenants") ~ "POC"),
+    type = case_when(
+      tenancy %in% c("w_fullowner","nw_fullowner") ~ "Full Owner",
+      tenancy %in% c("w_partowner","nw_partowner") ~ "Part Owner",
+      tenancy %in% c("w_tenant","nw_tenants") ~ "Tenants"
+    ))
+
+t$race <- as.factor(t$race)
+t$type <- as.factor(t$type)
+t$year <- as.factor(t$year)
+
+t %>% filter(race == "POC")
+
+t$alpharace <- as.factor(ifelse(t$race == "White", 0.6, 1))
+
+ggplot(t, aes(x = race, y=count , fill=type, alpha = factor(alpharace))) +
+  geom_bar(position = "fill", stat = "identity") +
+      scale_fill_manual(name = "", labels = c("Full Owner", "Part Owner", "Tenant"), values=c("#44AA99","#88CCEE","#DDCC77"))  +
+      theme(strip.background = element_rect(color="transparent",fill = "transparent")) +
+  theme(legend.position="bottom") +
+  theme_minimal() +
+  theme(text = element_text(size=10)) +
+  scale_alpha_manual(values = c("0.6"=0.6, "1"=1), guide='none') +
+  scale_x_discrete(labels = NULL, breaks = NULL) + labs(x = "") +
+  facet_wrap(~year,nrow=1) +
+    labs(title = "", color = "", y = "", x = "") +
+ ggsave('./viz/Figure6.jpeg', dpi = 400, width = 9.5, height = 5) 
+```
+
+Figure 7: A.  Median acres per operation in 2017; we visualize median acres rather than mean acres due to very large operations that skew the mean high (see mean acres per operation in SI Figure ###). B. Distribution of farm size through time.
+
+```{r}
+############################################################
+# Acres per operation, median in 2017
+############################################################
+size <- c_sf %>% select(c(1,10:11,14:16))  %>% mutate(ave_apo = round(tot_acres/n_op))
+
+### Extract quantiles; use these to estimate quantiles, below!
+# Mean
+q <- size %>% filter(year == 2017) %>% 
+  pull(acres_per_op) %>% # switch ave_apo & acres_per_op
+  quantile(probs = seq(0, 1, length.out = 7), na.rm = T) %>%
+  as.vector() # to remove names of quantiles, so idx below is numeric
+
+### What are the quantiles?
+quantiles_med <- c(0,50,75,100,150,300,40000) # Median
+
+### Create custom labels
+labels_med <- c("0 – 50 acres",      "50 – 75 acres",    "75 – 100 acres",    "100 – 150 acres",   "150 – 300 acres",  "> 300 acres") # Median
+
+### Create a new variable with the quantiles
+# Mean
+df <- size %>%
+  mutate(mean_quantiles = cut(ave_apo,
+                               breaks = quantiles,
+                               labels = labels,
+                               include.lowest = T)) %>% 
+  filter(year == 2017) %>% 
+  filter(!is.na(ave_apo)) 
+
+### PLOT
+### Create a new variable with the quantiles
+# Median
+df_op <- size %>%
+  mutate(median_quantiles = cut(acres_per_op,
+                               breaks = quantiles_med,
+                               labels = labels_med,
+                               include.lowest = T)) %>% 
+  filter(year == 2017) %>% 
+  filter(!is.na(acres_per_op)) 
+
+### PLOT
+# Median acres
+median_acres <- ggplot(data = df_op) +
+  geom_sf(mapping = aes(fill = median_quantiles),color = "transparent",size = 0.01) +
+  geom_sf(data = states, fill = "transparent", color = "dark gray") +
+  scale_fill_brewer(palette = "BuPu") +
+  theme_map() +
+    theme(panel.grid.major = element_line(colour = "white"), 
+          legend.position="bottom",
+          legend.key.size = unit(2, 'mm')) 
+
+# Distribution of farm size (box and whisker plot)
+c$year <- as.factor(c$year)
+bw <- ggplot(c, aes(x=year, y=acres_per_op, fill=year)) +
+  geom_boxplot() +
+  theme_classic() +
+  theme(legend.position = "none") +
+  #theme(legend.position="bottom",
+        #legend.title=element_text(size=14), 
+        #legend.text=element_text(size=10)) +
+  theme(axis.title=element_text(size=14),
+        axis.text=element_text(size=11)) +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_text(size=9, angle = 45, hjust = 1)) +
+  scale_fill_manual(values=c("#336633", "#CCCCCC", "#99CC99", "#CC6633")) +
+  coord_cartesian(ylim = c(0, 500)) 
+
+bw
+```
+
+
