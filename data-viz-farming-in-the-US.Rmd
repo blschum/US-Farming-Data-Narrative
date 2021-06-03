@@ -28,7 +28,21 @@ ggsave("./figs/tfp.png", dpi = 400, width = 200, height = 80, units = "mm")
 ```
 
 ### Figure 1: The nine US Farm Resource Regions delineated by the USDA ERS (2000). 
+```{r}
+frr <- readRDS("./data/FRR.RDS") 
 
+frr <- st_as_sf(frr)
+
+ggplot() +
+  geom_sf(data = frr, aes(fill = FRR_NAME), color = "transparent") +
+   geom_sf(data = states, fill = "transparent", color = "dark gray") +
+  theme_map() +
+  scale_fill_manual(values = c("#332288", "#117733", "#44AA99", "#88CCEE", "#DDCC77", "#CC6677", "#AA4499", "#882255", "#1D1C1C")) +
+  theme(legend.position = "right") +
+  theme(panel.grid.major = element_line(colour = "white")) + 
+  ggsave('./viz/FRRs.jpeg', width = 6, height = 4, dpi = 300)
+
+```
 
 ### Figure 2. (A.) US farms, land in farms, and average farm size from 1850 to 2017. The vertical line in 1978 reflects USDA-NASS implementation of adjustments for under-coverage. Data: Robert Hoppe, USDA ERS. (B.) Number of agricultural jobs from 1969 to 2019. Data: US BEA.
 
@@ -492,9 +506,19 @@ median_acres <- ggplot(data = df_op) +
           legend.position="bottom",
           legend.key.size = unit(2, 'mm')) 
 
+############################################################
+# Acres per operation, median in 2017
+############################################################
 # Distribution of farm size (box and whisker plot)
 c$year <- as.factor(c$year)
-bw <- ggplot(c, aes(x=year, y=acres_per_op, fill=year)) +
+bw <- c %>% filter(year != 1997) %>% select(c(2,6:8)) %>% mutate(ave = tot_acres/n_op) %>% select(c(1,4:5)) %>% pivot_Wider()
+
+bw_data_fix$CROP <- factor(bw_data_fix$CROP, levels = c("Alfalfa", "Corn Grain", "Corn Silage", "Other Hay", "Wheat"))
+colors=c("#74C476", "#6BAED6", "#9E9AC8", "#FB6A4A", "#FD8D3C")
+names(colors) <- levels(bw_data_fix$CROP)
+
+# put  median and average acres per operation next to each other in box and whisker!
+ggplot(bw, aes(x=year, y=acres_per_op, fill=year)) +
   geom_boxplot() +
   theme_classic() +
   theme(legend.position = "none") +
@@ -506,9 +530,22 @@ bw <- ggplot(c, aes(x=year, y=acres_per_op, fill=year)) +
   theme(axis.title.x=element_blank(),
         axis.text.x=element_text(size=9, angle = 45, hjust = 1)) +
   scale_fill_manual(values=c("#336633", "#CCCCCC", "#99CC99", "#CC6633")) +
-  coord_cartesian(ylim = c(0, 500)) 
+  coord_cartesian(ylim = c(0, 400)) 
 
-bw
+ggplot(bw, aes(x=year, y=ave, fill=year)) +
+  geom_boxplot() +
+  theme_classic() +
+  theme(legend.position = "none") +
+  #theme(legend.position="bottom",
+        #legend.title=element_text(size=14), 
+        #legend.text=element_text(size=10)) +
+  theme(axis.title=element_text(size=14),
+        axis.text=element_text(size=11)) +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_text(size=9, angle = 45, hjust = 1)) +
+  scale_fill_manual(values=c("#336633", "#CCCCCC", "#99CC99", "#CC6633")) +
+  coord_cartesian(ylim = c(0, 1000)) 
+
 ```
 
 
