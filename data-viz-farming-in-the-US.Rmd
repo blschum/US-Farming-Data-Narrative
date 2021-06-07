@@ -9,13 +9,16 @@ output:
     toc_float: true
 ---
 
-## Load relevant packages
+## Load relevant packages & common data
 ```{r}
 library(tidyverse)
 library(ggplot2)
 library(ggpubr)
 library(sf)
 
+counties <- readRDS("./data/coterm_cty_sf.RDS") 
+states <- readRDS("./data/states_sf.RDS") 
+states <- states %>% filter(STATE_FIPS %in% counties$STATEFP)
 
 # notes from EB
 project_theme <- theme_bw() +
@@ -26,122 +29,6 @@ paste_noNA <- function(x,sep=", ") {
 gsub(", " ,sep, toString(x[!is.na(x) & x!="" & x!="NA"] ) ) }
 ```
 
-### Figure 1: The nine US Farm Resource Regions delineated by the USDA ERS (2000). 
-```{r}
-frr <- readRDS("./data/FRR.RDS") 
-
-frr <- st_as_sf(frr)
-
-ggplot() +
-  geom_sf(data = frr, aes(fill = FRR_NAME), color = "transparent") +
-   geom_sf(data = states, fill = "transparent", color = "dark gray") +
-  theme_map() +
-  scale_fill_manual(values = c("#332288", "#117733", "#44AA99", "#88CCEE", "#DDCC77", "#CC6677", "#AA4499", "#882255", "#1D1C1C")) +
-  theme(legend.position = "right") +
-  theme(panel.grid.major = element_line(colour = "white")) + 
-  ggsave('./viz/FRRs.jpeg', width = 6, height = 4, dpi = 300)
-
-```
-
-### Figure 2. (A.) US farms, land in farms, and average farm size from 1850 to 2017. The vertical line in 1978 reflects USDA-NASS implementation of adjustments for under-coverage. Data: Robert Hoppe, USDA ERS. (B.) Number of agricultural jobs from 1969 to 2019. Data: US BEA.
-
-```{r}
-# US land assets, historical data from Robert Hoppe at the USDA ERS
-
-land <- read.csv("./data/ERS-farmop.csv")
-
-land_assets <- land %>% 
-   filter(YEAR %in% c(1850:2012,2017,2020)) %>% 
-  select(1:4) %>% 
-   pivot_longer(cols = 2:4, names_to = "variable", values_to = "value") %>% 
-ggplot(.) +
-  geom_line(aes(x = YEAR, y = value, color = variable), alpha = 0.8, size = 1.3) +
-  project_theme +
-  scale_color_manual(values = c("#DDCC77","#117733","#332288")) +
-  labs(title = "", color = "", y = "", x = "") +
-  annotate("text", x = c(1957,1987,1965), y = c(6.4,5.1,1.75), label = c("Farms (millions)", "Average farm size\n(hundred acres/farm)", "Land in farms\n(billion acres)"), size = 2.5) + 
-  scale_x_continuous(breaks = seq(1850, 2020, by = 20)) +
-  scale_y_continuous(breaks=c(0,2,4,6,8)) +
-  coord_cartesian(xlim = c(1858,2012), ylim = c(0.35,7.5)) +
-  theme(legend.position="") +
-  geom_vline(xintercept=c(1997), linetype="dotted") 
-
-# US employment in agriculture
-bea <- readRDS("./data/bea.RDS")
-bea$YEAR <- as.numeric(bea$YEAR)
-
-employ <- bea %>% filter(GeoName == "United States") %>% select(c(2,44:45))
-
-paste_noNA <- function(x,sep=", ") {
-gsub(", " ,sep, toString(x[!is.na(x) & x!="" & x!="NA"] ) ) }
-
-employ$farmempl <- as.numeric(apply(employ[c(2:3)],1,paste_noNA))
-
-employment <- employ %>% 
-ggplot(.) +
-  geom_line(aes(x = YEAR, y = farmempl),color = "#88CCEE", size = 1.3) +
-  project_theme +
-  labs(title = "", color = "", x = "", y = "Number of jobs (in millions)") +
-  scale_y_continuous(breaks=c(3000000,3500000,4000000),
-        labels=c("3.0", "3.5", "4.0"))
-
-
-ggarrange(land_assets, employment, ncol = 2, labels = c('A.', 'B.'),
-          font.label = list(size = 8))
-ggsave("./viz/Figure2.png", dpi = 400, width = 200, height = 80, units = "mm")
-
-```
-
-### Figure 3. (A.) The average age of primary operators from 1940 to 2017. (B.) The number of US farms with primary operators identifying as Black (red), white (blue), and members of all other races (yellow) from 1900 to 2017. For scale, it is important to note that farms operated by Black operators and members of all other races are shown in hundred thousands, while white operated farms are shown in millions. (C.) Number of primary operators by reported gender, shown in hundred thousands; overlayed with percent female primary operators. The USDA began statistical adjustments for under coverage in 1997, reflected in the vertical change (dotted vertical line) in average age in 1997 from 54.3 (unadjusted) to 54.0 (adjusted). Data: Compiled by Robert Hoppe of the USDA Economic Research Service and shared with the authors.
-```{r}
-h <- read.csv("./data/historical-coa.csv")
-
-project_theme <- theme_bw() +
-  theme(text = element_text(size=10))
-
-# Average Operator Age
-age <- h %>% 
-  ggplot(.) +
-  geom_line(aes(x = year, y = ave_age), color = "#88CCEE", size = 1.5) +
-  project_theme +
-  labs(title = "", color = "", y = "Average Age", x = "") +
-  coord_cartesian(xlim = c(1940,2017)) +
-  geom_vline(xintercept=c(1997), linetype="dotted") 
-
-# Farm operators by race through time
-race <- h %>% filter(!is.na(black)) %>% 
-  ggplot(.) +
-  geom_line(aes(x = year, y = white/1000000, color = "White operators (in 1Ms)"), size = 1, linetype = "longdash") +
-  geom_line(aes(x = year, y = black/100000, color = "Black operators (in 100ks)"), size = 1, linetype = "longdash") +
-  geom_line(aes(x = year, y = other/100000, color = "All Other Races operators (in 100ks)"), size = 1, linetype = "longdash") +
-  project_theme +
-  labs(title = "", color = "", y = "Number of Operators", x = "") +
-  scale_color_manual(name="",values = c("White operators (in 1Ms)" = "#88CCEE", "Black operators (in 100ks)" = "#CC6677", "All Other Races operators (in 100ks)" = "#DDCC77")) +
-  coord_cartesian(xlim = c(1900,2017)) +
-  geom_vline(xintercept=c(1997), linetype="dotted") +
-    theme(legend.position="right") 
-
-
-# Number of Farm operators by sex through time
-
-sex <- h %>%
-  select(year, male, female) %>% filter (!is.na(female)) %>% mutate(perc = female/male*100) %>% 
-  pivot_longer(-c(year, perc), names_to = "variable", values_to = "count") %>% 
-ggplot(.) +
-  geom_bar(aes(fill=variable, y=count/100000, x=year), position="dodge", stat="identity") +
-  geom_line(aes(x = year, y = perc, color = "% Female Primary Operators"), stat = "identity", size = 1.5) +
-  project_theme +
-  scale_fill_manual(name="",labels = c("Female", "Male"), values = c("#44AA99", "#332288")) +
-  scale_color_manual(name="",values = c("% Female Primary Operators" = "#DDCC77")) +
-  geom_vline(xintercept=c(1997), linetype="dotted") +
-  theme(legend.position="right") +
-  labs(title = "", y = "Number of Primary Operators", x = "") 
-
-ggarrange(age, race, sex, nrow = 3, labels = c('A.', 'B.', 'C.'),
-          font.label = list(size = 8))
-ggsave("./viz/Figure3.png", dpi = 400, width = 180, height = 240, units = "mm")
-
-```
 
 # Pull in theme for maps
 ```{r}
@@ -176,15 +63,136 @@ theme_map <- function(...) {
 ```
 
 
+### Figure 1: The nine US Farm Resource Regions delineated by the USDA ERS (2000). 
+```{r}
+frr <- readRDS("./data/FRR.RDS") 
+
+frr <- st_as_sf(frr)
+
+ggplot() +
+  geom_sf(data = frr, aes(fill = FRR_NAME), color = "transparent") +
+   geom_sf(data = states, fill = "transparent", color = "dark gray") +
+  theme_map() +
+  scale_fill_manual(values = c("#332288", "#117733", "#44AA99", "#88CCEE", "#DDCC77", "#CC6677", "#AA4499", "#882255", "#1D1C1C")) +
+  theme(legend.position = "right") +
+  theme(panel.grid.major = element_line(colour = "white")) + 
+  ggsave('./viz/Figure1.jpeg', width = 6, height = 4, dpi = 300)
+
+```
+
+### Figure 2. (A.) US farms, land in farms, and average farm size from 1850 to 2017. The vertical line in 1978 reflects USDA-NASS implementation of adjustments for under-coverage. Data: Robert Hoppe, USDA ERS. (B.) Number of agricultural jobs from 1969 to 2019. Data: US BEA.
+
+```{r}
+# US land assets, historical data from Robert Hoppe at the USDA ERS
+
+land <- read.csv("./data/ERS-farmop.csv")
+
+land_assets <- land %>% 
+   filter(YEAR %in% c(1850:2012,2017,2020)) %>% 
+  select(1:4) %>% 
+   pivot_longer(cols = 2:4, names_to = "variable", values_to = "value") %>% 
+ggplot(.) +
+  geom_line(aes(x = YEAR, y = value, color = variable), alpha = 0.8, size = 1.3) +
+  project_theme +
+  scale_color_manual(values = c("#DDCC77","#117733","#332288")) +
+  labs(title = "", color = "", y = "", x = "") +
+  annotate("text", x = c(1957,1987,1965), y = c(6.4,5.1,1.75), label = c("Farms (millions)", "Average farm size\n(hundred acres/farm)", "Land in farms\n(billion acres)"), size = 2.5) + 
+  scale_x_continuous(breaks = seq(1850, 2020, by = 20)) +
+  scale_y_continuous(breaks=c(0,2,4,6,8)) +
+  coord_cartesian(xlim = c(1858,2012), ylim = c(0.35,7.5)) +
+  theme(legend.position="") +
+  geom_vline(xintercept=c(1997), linetype="dotted") 
+
+# US employment in agriculture
+bea <- readRDS("./data/bea.RDS")
+bea$YEAR <- as.numeric(bea$YEAR)
+
+employ <- bea %>% filter(GeoName == "United States") %>% select(c(2,44:45))
+
+employ$farmempl <- as.numeric(apply(employ[c(2:3)],1,paste_noNA))
+
+employment <- employ %>% 
+ggplot(.) +
+  geom_line(aes(x = YEAR, y = farmempl),color = "#88CCEE", size = 1.3) +
+  project_theme +
+  labs(title = "", color = "", x = "", y = "Number of jobs (in millions)") +
+  scale_y_continuous(breaks=c(3000000,3500000,4000000),
+        labels=c("3.0", "3.5", "4.0"))
+
+
+ggarrange(land_assets, employment, ncol = 2, labels = c('A.', 'B.'),
+          font.label = list(size = 8))
+ggsave("./viz/Figure2.png", dpi = 400, width = 200, height = 80, units = "mm")
+
+# STATS
+# number of farm operations in 1935 and 2017
+land %>% filter(YEAR == 1935 | YEAR == 2017 )
+
+# average farm size in 1900 and 2017
+land %>% filter(YEAR == 1900 | YEAR == 2017 )
+
+# difference in employment between 1983 and 2017
+employ %>% filter(YEAR == 1983 | YEAR == 2017)
+```
+
+### Figure 3. (A.) The average age of primary operators from 1940 to 2017. (B.) The number of US farms with primary operators identifying as Black (red), white (blue), and members of all other races (yellow) from 1900 to 2017. For scale, it is important to note that farms operated by Black operators and members of all other races are shown in hundred thousands, while white operated farms are shown in millions. (C.) Number of primary operators by reported gender, shown in hundred thousands; overlayed with percent female primary operators. The USDA began statistical adjustments for under coverage in 1997, reflected in the vertical change (dotted vertical line) in average age in 1997 from 54.3 (unadjusted) to 54.0 (adjusted). Data: Compiled by Robert Hoppe of the USDA Economic Research Service and shared with the authors.
+```{r}
+h <- read.csv("./data/historical-coa.csv")
+
+project_theme <- theme_bw() +
+  theme(text = element_text(size=10))
+
+# Average Operator Age
+age <- h %>% 
+  ggplot(.) +
+  geom_line(aes(x = year, y = ave_age), color = "#88CCEE", size = 1.5) +
+  project_theme +
+  labs(title = "", color = "", y = "Average Age", x = "") +
+  coord_cartesian(xlim = c(1940,2017)) +
+  geom_vline(xintercept=c(1997), linetype="dotted") 
+
+# Farm operators by race through time
+race <- h %>% filter(!is.na(black)) %>% 
+  ggplot(.) +
+  geom_line(aes(x = year, y = white/1000000, color = "White operators (in 1Ms)"), size = 1, linetype = "longdash") +
+  geom_line(aes(x = year, y = black/100000, color = "Black operators (in 100ks)"), size = 1, linetype = "longdash") +
+  geom_line(aes(x = year, y = other/100000, color = "All Other Races operators (in 100ks)"), size = 1, linetype = "longdash") +
+  project_theme +
+  labs(title = "", color = "", y = "Number of Operators", x = "") +
+  scale_color_manual(name="",values = c("White operators (in 1Ms)" = "#88CCEE", "Black operators (in 100ks)" = "#CC6677", "All Other Races operators (in 100ks)" = "#DDCC77")) +
+  coord_cartesian(xlim = c(1900,2017)) +
+  geom_vline(xintercept=c(1997), linetype="dotted") +
+    theme(legend.position="bottom") 
+
+
+# Number of Farm operators by sex through time
+
+sex <- h %>%
+  select(year, male, female) %>% filter (!is.na(female)) %>% mutate(perc = female/male*100) %>% 
+  pivot_longer(-c(year, perc), names_to = "variable", values_to = "count") %>% 
+ggplot(.) +
+  geom_bar(aes(fill=variable, y=count/100000, x=year), position="dodge", stat="identity") +
+  geom_line(aes(x = year, y = perc, color = "% Female Primary Operators"), stat = "identity", size = 1.5) +
+  project_theme +
+  scale_fill_manual(name="",labels = c("Female", "Male"), values = c("#44AA99", "#332288")) +
+  scale_color_manual(name="",values = c("% Female Primary Operators" = "#DDCC77")) +
+  geom_vline(xintercept=c(1997), linetype="dotted") +
+  theme(legend.position="bottom") +
+  labs(title = "", y = "Number of Primary Operators", x = "") 
+
+ggarrange(age, race, sex, nrow = 3, labels = c('A.', 'B.', 'C.'),
+          font.label = list(size = 8))
+ggsave("./viz/Figure3.png", dpi = 400, width = 150, height = 240, units = "mm")
+
+```
+
+
 Figure 4. Percent primary operators identifying as (A.) Black, (B.) Hispanic, (C.) white, and (D.) female in 2017.  Data: USDA QuickStats, 2017 COA.
 
 ```{r}
 # load data
 c <- readRDS("./data/contemp-coa.RDS")
 r <- readRDS("./data/coa-race.RDS")
-counties <- readRDS("./data/coterm_cty_sf.RDS") 
-states <- readRDS("./data/states_sf.RDS") 
-states <- states %>% filter(STATE_FIPS %in% counties$STATEFP)
 
 # Build spatial
 c_sf <- merge(counties, c, by = "GEOID")
@@ -452,7 +460,7 @@ ggplot(t, aes(x = race, y=count , fill=type, alpha = factor(alpharace))) +
  ggsave('./viz/Figure6.jpeg', dpi = 400, width = 9.5, height = 5) 
 ```
 
-Figure 7: A.  Median acres per operation in 2017; we visualize median acres rather than mean acres due to very large operations that skew the mean high (see mean acres per operation in SI Figure ###). B. Distribution of farm size through time.
+Figure 10: A.  Median acres per operation in 2017; we visualize median acres rather than mean acres due to very large operations that skew the mean high (see mean acres per operation in SI Figure ###). B. Distribution of farm size through time.
 
 ```{r}
 ############################################################
@@ -512,26 +520,26 @@ median_acres <- ggplot(data = df_op) +
 c$year <- as.factor(c$year)
 bw <- c %>% filter(year != 1997) %>% select(c(2,6:8)) %>% mutate(ave = tot_acres/n_op) %>% select(c(1,4:5)) %>% pivot_longer(!year, names_to = "category", values_to = "acres")
 
-bw$year <- factor(bw$year, levels = c(2002, 2007, 2012, 2017))
-colors=c("#44AA99", "#88CCEE", "#DDCC77", "#CC6677")
-names(colors) <- levels(bw$year)
+bw$category <- factor(bw$category, levels = c("ave", "acres_per_op"))
+colors=c("#DDCC77", "#CC6677")
+names(colors) <- levels(bw$category)
 
-bw$alpha <- as.factor(ifelse(bw$category == "ave", 0.4, 1))
+#bw$alpha <- as.factor(ifelse(bw$category == "ave", 0.7, 0.7))
 
 # put  median and average acres per operation next to each other in box and whisker!
-dist_acres <- ggplot(bw, aes(x=year, y=acres, fill=year, alpha = factor(alpha))) +
-  geom_boxplot() +
+dist_acres <- ggplot(bw, aes(x=year, y=acres, fill=category)) +
+  geom_boxplot(outlier.alpha = 0.1) +
   project_theme + 
   theme(legend.position = "none") +
   labs(title = "", y = "Acres per Operation", x = "") +
   scale_fill_manual(name ="year",  values=colors) +
-  scale_alpha_manual(values = c("0.4"=0.4, "1"=1), guide='none') +
+  #scale_alpha_manual(values = c("0.7"=0.7), guide='none') +
   coord_cartesian(ylim = c(0, 1200)) 
 
 # Build panel plots!
 # (A.) median acres, (B.) distribution of acreage
 ggarrange(median_acres, dist_acres, labels = c("A.", "B."), ncol = 2, font.label = list(size = 8))
-ggsave("./viz/Figure7.png", dpi = 400, width = 200, height = 80, units = "mm")
+ggsave("./viz/Figure10.png", dpi = 400, width = 200, height = 80, units = "mm")
 ```
 
 ### Figure 9: A. The difference in the share of agricultural employment in the workforce from 1969 to 2019; where red, counties employ fewer proprietors, partners, and hired laborers in agriculture now than in 1969. For example, in Cache County, UT, 13.3 out of every 100 workers were employed in agriculture in 1969; in 2019, however, only 1.9 were, resulting in a -11.5 difference in agricultural workers per 100 county workers over time. Data: US BEA.
@@ -579,32 +587,8 @@ ggplot(.) +
   theme(panel.grid.major = element_line(colour = "white")) + 
   ggsave('./viz/Figure9.jpeg', width = 6, height = 4, dpi = 300)
 ```
+
 ### Figure 11.Average farm and nonfarm proprietors’ income, adjusted to 2019 dollars. Data: US BEA.
-```{r}
-p <- dat %>% select(c(1:3,farmprop_income, farmprop_employ, nonfarmprop_income, nonfarmprop_employ,70))
-
-p$farmprop_income_adj<-p$farmprop_income/p$adj_value
-p$nonfarmprop_income_adj<-p$nonfarmprop_income/p$adj_value
-
-p <- p %>% 
-  mutate(ave_farm = farmprop_income_adj*1000/farmprop_employ,
-         ave_nonfarm = nonfarmprop_income_adj*1000/nonfarmprop_employ)
-
-t <- p %>% filter(!is.na(ave_farm))
-mean(t$ave_farm)
-
-p %>% filter(GeoName == "United States") %>% select(2,11:12) %>% pivot_longer(-c(1), names_to = "type", values_to = "income") %>% 
-  ggplot(.) +
-  geom_line(aes(x = YEAR, y = income, color = type), size = 1.5) +
-  project_theme +
-  labs(title = "", color = "", y = "Average Proprietors Income", x = "") +
-  scale_color_manual(name="",labels = c("Farm", "Nonfarm"), values = c("#CC6677", "#DDCC77")) +
-   theme(legend.position="bottom") +
-  ggsave("./viz/Figure11.png", width = 6, height = 4, dpi = 300)
-```
-
-
-### Figure 12. Realized net income of farmers in 1969 and 2019, adjusted to 2019 dollars. Net income is defined as total cash receipts from all farms less total production expenses. Counties in which net income is negative (red) had average production expenses that surpassed total cash receipts. For instance, Parker, TX realized $17M in 1969, but -$60M in 2019. Data: USDA ERS BEA.
 ```{r}
 #inflation adjust to 2019 dollars 
 options(scipen = 100)
@@ -618,6 +602,40 @@ df$year<-as.numeric(df$year)
 dat<-left_join(bea,df[,c(1,3)], by=c("YEAR"="year")) #this basically joins the inflation adjustment values to the dataset you want to adjust by joining by year of the data (so the current year data in the BEA dataset) in this case I am inflation adjusting the per capita income levels (pci) 
 
 dat$net_income_adj<-dat$net_income/dat$adj_value #this performs the actual dollar value adjustment
+p <- dat %>% select(c(1:3,farmprop_income, farmprop_employ, nonfarmprop_income, nonfarmprop_employ,68, prod_exp))
+
+p$farmprop_income_adj<-p$farmprop_income/p$adj_value
+p$nonfarmprop_income_adj<-p$nonfarmprop_income/p$adj_value
+
+p <- p %>% 
+  subset(!(GEOID %in% counties$GEOID)) %>% 
+  filter(str_detect(GEOID, pattern = "000"),
+         GEOID != "00000" & GEOID != "11000" & GEOID != "02000" & GEOID != "15000") %>% 
+  filter(as.numeric(as.character((GEOID))) < 91000) %>% 
+  group_by(YEAR) %>% 
+  summarise(US_farm_income = sum(farmprop_income_adj),
+         US_farm_employ = sum(farmprop_employ),
+         US_nonfarm_income = sum(nonfarmprop_income_adj),
+         US_nonfarm_employ = sum(nonfarmprop_employ),
+         US_prod_exp = sum(prod_exp)) %>% 
+  mutate(ave_farm = US_farm_income*1000/US_farm_employ,
+         ave_nonfarm = US_nonfarm_income*1000/US_nonfarm_employ,
+         exp_prop = US_prod_exp*1000/US_farm_employ)
+
+
+p %>% select(1,6:7) %>% pivot_longer(-c(1), names_to = "type", values_to = "income") %>% 
+  ggplot(.) +
+  geom_line(aes(x = YEAR, y = income, color = type), size = 1.5) +
+  project_theme +
+  labs(title = "", color = "", y = "Average Proprietors Income", x = "") +
+  scale_color_manual(name="",labels = c("Farm", "Nonfarm"), values = c("#CC6677", "#DDCC77")) +
+   theme(legend.position="bottom") +
+  ggsave("./viz/Figure11.png", width = 6, height = 4, dpi = 300)
+```
+
+
+### Figure 12. Realized net income of farmers in 1969 and 2019, adjusted to 2019 dollars. Net income is defined as total cash receipts from all farms less total production expenses. Counties in which net income is negative (red) had average production expenses that surpassed total cash receipts. For instance, Parker, TX realized $17M in 1969, but -$60M in 2019. Data: USDA ERS BEA.
+```{r}
 
 # Realized net income in 1969
 i <- dat %>% filter(GEOID %in% counties$GEOID, YEAR == 1969) %>% select(c(1:3,71)) %>% filter(!is.na(net_income_adj)) %>% mutate(net_income_adj = net_income_adj*1000)
@@ -697,6 +715,10 @@ per_acre_exp <- merge(ag_acres, expenses, by = c("GEOID","YEAR"))
 
 per_acre_exp <- per_acre_exp %>% mutate(exp_per_acre = prod_exp/tot_acres) %>% filter(!is.na(exp_per_acre))
 
+# stats
+median(per_acre_exp$exp_per_acre)
+mean(per_acre_exp$exp_per_acre)
+
 exp_sf <- merge(counties, per_acre_exp, by = "GEOID")
 glimpse(exp_sf)
 
@@ -726,4 +748,3 @@ ggplot(.) +
   ggsave("./viz/Figure13.png", width = 6, height = 4, dpi = 300)
 
 ```
-
