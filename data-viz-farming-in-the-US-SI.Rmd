@@ -196,8 +196,11 @@ ave_age <- ggplot(data = df) +
 age_diff <- c %>% select(c(1:5)) %>%   
   filter(year %in% c(1997,2017)) %>% 
   group_by(GEOID, county) %>%
-  #pivot_wider(names_from = year, values_from = age) %>% 
-  summarise(age = diff(age))
+  summarise(age = diff(age)) %>% 
+  filter(!is.na(age))
+
+# percent cty's reporting reduction in average age
+z<- age_diff %>% filter(age < 0) #67/3108 counties
 
 t <- age_diff %>% filter(age <= 0)
 
@@ -252,6 +255,11 @@ ggplot(.) +
   project_theme +
   theme(legend.position="bottom") +
   ggsave('./viz/SI-Figure4.png', dpi = 400, width = 100, height = 80, units = "mm")
+
+# percent in 1910
+1802540/5794768
+# percent in 2017
+2435435/3399834
 ```
 
 ### **SI Figure 5**: 
@@ -576,6 +584,27 @@ ggplot(.) +
   theme(legend.position="bottom") +
   scale_x_continuous(breaks = c(1997, 2002, 2007, 2012, 2017)) +
   ggsave("./viz/SI-Figure9.png", dpi = 400, width = 100, height = 80, units = "mm")
+
+# STATS
+# tenancy through time
+
+z <- c %>%
+  select(c(1:2,18:20)) %>% 
+  filter(year == 2017)   
+
+z[is.na(z)] <- 0 
+
+z <- z %>% group_by(year) %>% 
+  summarise(full_owner = sum(full_owner),
+            part_owner = sum(part_owner),
+            tenant = sum(tenant))
+  
+# full owner
+294702960/879236316
+# part owner
+294702960/879236316
+# tenant
+82741246/879236316
 ```
 
 ### **SI Figure 10**: 

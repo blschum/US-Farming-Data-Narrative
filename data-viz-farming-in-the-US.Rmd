@@ -1,5 +1,5 @@
 ---
-title: 'Data Visualizations, by Figure #'
+title: 'Data Visualizations & Stats, by Figure #'
 author: "Britta Schumacher"
 date: "Last updated: `r format(Sys.time(), '%d %B, %Y')`"
 output: 
@@ -164,11 +164,16 @@ race <- h %>% filter(!is.na(black)) %>%
   geom_vline(xintercept=c(1997), linetype="dotted") +
     theme(legend.position="bottom") 
 
+# STATS
+# Percent black in 1900
+746717/5739657
+# Percent black in 2017
+38447/2740453
 
 # Number of Farm operators by sex through time
 
 sex <- h %>%
-  select(year, male, female) %>% filter (!is.na(female)) %>% mutate(perc = female/male*100) %>% 
+  select(year, male, female) %>% filter (!is.na(female)) %>% mutate(perc = (female/(female+male))*100) %>% 
   pivot_longer(-c(year, perc), names_to = "variable", values_to = "count") %>% 
 ggplot(.) +
   geom_bar(aes(fill=variable, y=count/100000, x=year), position="dodge", stat="identity") +
@@ -184,6 +189,18 @@ ggarrange(age, race, sex, nrow = 3, labels = c('A.', 'B.', 'C.'),
           font.label = list(size = 8))
 ggsave("./viz/Figure3.png", dpi = 400, width = 150, height = 240, units = "mm")
 
+# STATS
+# percent female
+h %>% select(year, male, female) %>% filter (!is.na(female)) %>% mutate(perc = (female/(female+male))*100)
+
+# difference in % female operated acres and operators
+f <- c %>% select(c(1:4,13,16)) %>% 
+  filter(year == 2017) %>% 
+  mutate(diff = percf_acr - percf_op) %>% 
+  filter(!is.na(diff)) %>%  #3028 total counties with non-NA observations
+  filter(diff > 0)
+
+187/3028
 ```
 
 
@@ -209,7 +226,7 @@ race_prop <- r %>% mutate(TOTAL = rowSums(.[7:13])) %>%
          ASIAN = ASIAN/TOTAL*100,
          PACIFIC_ISL = PACIFIC_ISL/TOTAL*100) %>% 
   filter(OPERATOR == "OPERATORS, PRINCIPAL") %>% 
-  select("GEOID", "YEAR", "OPERATOR", "TYPE", "WHITE", "POC", "NATIVE_AMER", "BLACK", "MULTI", "HISPANIC", "ASIAN", "PACIFIC_ISL", "TOTAL") %>% 
+  select("GEOID", "YEAR", "OPERATOR", "TYPE", "WHITE", "POC", "NATIVE_AMER", "BLACK", "MULTI", "HISPANIC", "ASIAN", "PACIFIC_ISL", "TOTAL") %>%
   mutate_at(7:13, round, 3)
 
 # build spatial
@@ -333,6 +350,71 @@ white_operators <- ggplot(data = df) +
 # (A.) Black, (B.) Hispanic, (C.) white and (D.) female operators
 ggarrange(black_operators, hisp_operators, white_operators, female_operators, labels = c("A.", "B.", "C.", "D."), ncol = 2, nrow = 2, font.label = list(size = 8))
 ggsave("./viz/Figure4.png", dpi = 400, width = 180, height = 120, units = "mm")
+
+# STATS
+# Percent by POC, nationally
+r %>% mutate(TOTAL = rowSums(.[7:13])) %>% 
+  filter(YEAR == 2017) %>% 
+  group_by(TYPE) %>% 
+  filter(OPERATOR == "OPERATORS, PRINCIPAL") %>% 
+  summarise(TOTAL = sum(TOTAL),
+         NATIVE_AMER = sum(NATIVE_AMER)/TOTAL*100,
+         BLACK = sum(BLACK)/TOTAL*100,
+         MULTI = sum(MULTI)/TOTAL*100,
+         WHITE = sum(WHITE)/TOTAL*100,
+         HISPANIC = sum(HISPANIC)/TOTAL*100,
+         ASIAN = sum(ASIAN)/TOTAL*100,
+         PACIFIC_ISL = sum(PACIFIC_ISL)/TOTAL*100,
+         POC = NATIVE_AMER + BLACK + MULTI + HISPANIC + ASIAN + PACIFIC_ISL) 
+
+# percent race by state
+rs <- r %>% mutate(TOTAL = rowSums(.[7:13])) %>% 
+  group_by(YEAR, STATE, TYPE) %>% 
+  filter(YEAR == 2017) %>% 
+  filter(OPERATOR == "OPERATORS, PRINCIPAL") %>% 
+  summarise(TOTAL = sum(TOTAL),
+         NATIVE_AMER = sum(NATIVE_AMER)/TOTAL*100,
+         BLACK = sum(BLACK)/TOTAL*100,
+         MULTI = sum(MULTI)/TOTAL*100,
+         WHITE = sum(WHITE)/TOTAL*100,
+         HISPANIC = sum(HISPANIC)/TOTAL*100,
+         ASIAN = sum(ASIAN)/TOTAL*100,
+         PACIFIC_ISL = sum(PACIFIC_ISL)/TOTAL*100) %>% 
+  arrange(-BLACK)
+
+head(rs,10)
+
+rs <- r %>% mutate(TOTAL = rowSums(.[7:13])) %>% 
+  group_by(YEAR, STATE, TYPE) %>% 
+  filter(YEAR == 2017) %>%   
+  filter(OPERATOR == "OPERATORS, PRINCIPAL") %>% 
+  summarise(TOTAL = sum(TOTAL),
+         NATIVE_AMER = sum(NATIVE_AMER)/TOTAL*100,
+         BLACK = sum(BLACK)/TOTAL*100,
+         MULTI = sum(MULTI)/TOTAL*100,
+         WHITE = sum(WHITE)/TOTAL*100,
+         HISPANIC = sum(HISPANIC)/TOTAL*100,
+         ASIAN = sum(ASIAN)/TOTAL*100,
+         PACIFIC_ISL = sum(PACIFIC_ISL)/TOTAL*100) %>% 
+  arrange(-HISPANIC)
+
+head(rs,10)
+
+rs <- r %>% mutate(TOTAL = rowSums(.[7:13])) %>% 
+  group_by(YEAR, STATE, TYPE) %>% 
+  filter(YEAR == 2017) %>% 
+  filter(OPERATOR == "OPERATORS, PRINCIPAL") %>% 
+  summarise(TOTAL = sum(TOTAL),
+         NATIVE_AMER = sum(NATIVE_AMER)/TOTAL*100,
+         BLACK = sum(BLACK)/TOTAL*100,
+         MULTI = sum(MULTI)/TOTAL*100,
+         WHITE = sum(WHITE)/TOTAL*100,
+         HISPANIC = sum(HISPANIC)/TOTAL*100,
+         ASIAN = sum(ASIAN)/TOTAL*100,
+         PACIFIC_ISL = sum(PACIFIC_ISL)/TOTAL*100) %>% 
+  arrange(-NATIVE_AMER)
+
+head(rs,10)
 
 ```
 
@@ -540,6 +622,11 @@ dist_acres <- ggplot(bw, aes(x=year, y=acres, fill=category)) +
 # (A.) median acres, (B.) distribution of acreage
 ggarrange(median_acres, dist_acres, labels = c("A.", "B."), ncol = 2, font.label = list(size = 8))
 ggsave("./viz/Figure10.png", dpi = 400, width = 200, height = 80, units = "mm")
+
+# average farm size
+c %>% filter(year == 2017) %>% select(c(6:8)) %>% mutate(ave = tot_acres/n_op) %>% drop_na()  %>%  summarise(median = mean(acres_per_op),
+                                                                                                  mean = mean(ave))
+
 ```
 
 ### Figure 9: A. The difference in the share of agricultural employment in the workforce from 1969 to 2019; where red, counties employ fewer proprietors, partners, and hired laborers in agriculture now than in 1969. For example, in Cache County, UT, 13.3 out of every 100 workers were employed in agriculture in 1969; in 2019, however, only 1.9 were, resulting in a -11.5 difference in agricultural workers per 100 county workers over time. Data: US BEA.
@@ -704,6 +791,17 @@ ggplot(.) +
 # (A.) net income 1969 (adjusted), (B.) net income 2019
 ggarrange(income_69, income_19, labels = c("A.", "B."), ncol = 2, font.label = list(size = 8))
 ggsave("./viz/Figure12.png", dpi = 400, width = 200, height = 80, units = "mm")
+
+# STATS
+# % counties reporting negative net income
+i <- bea %>% 
+  filter(GEOID %in% counties$GEOID, YEAR == 2019) %>% 
+  select(c(1:3,24)) %>% 
+  filter(!is.na(net_income)) %>% 
+  mutate(net_income = net_income*1000) %>%  #3057 total US counties
+  filter(net_income < 0)
+
+808/3057
 ```
 
 ### Figure 13. Per acre expenditure on agricultural inputs in 2017; county-level agricultural expense data standardized by a county's total agricultural acres. Data: USDA ERS BEA, and USDA COA QuickStats.
