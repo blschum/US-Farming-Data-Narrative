@@ -846,3 +846,19 @@ ggplot(.) +
   ggsave("./viz/Figure13.png", width = 6, height = 4, dpi = 300)
 
 ```
+
+
+### Figure ???: 
+
+```{r}
+n <- read.csv("./data/net-income-by-farm-size.csv")
+
+n <- n %>% pivot_longer(!c(1:2), names_to = "year", values_to = "net_income") %>%  filter(X != "Farm size by gross sales value") %>% filter(X!="Farm typology") %>% filter(X!="All farms") %>% rename("typology" = X) %>%  rename("farm_share" = Share.of.US.farms)
+
+n$year <- as.factor(n$year)
+
+levels(n$year) <- c(2012:2021)
+
+
+```
+

@@ -721,7 +721,7 @@ debt <- debt %>% mutate(REAL_GDP = Amount / (ChainType_GDP_Deflator/100))
 debt_tidy <- debt %>% pivot_wider(names_from = variable, values_from = Amount)
 
 # VIZ
-debt %>%
+z<-debt %>%
   filter(variable %in% c("Real estate_Commercial banks","Real estate_CCC storage and drying loans","Real estate_Farm Credit System","Real estate_Farm Service Agency","Real estate_Farmer Mac","Real estate_Individuals and others","Real estate_Life insurance companies"),
          Year >= 1960) %>%
 ggplot(.) +
@@ -939,6 +939,9 @@ ggsave("./viz/SI-Figure19.png", dpi = 400, units = "mm", width = 200, height = 8
 #### Net cash farm income of operations (measured in $/operation) reported by the USDA-NASS in 2017. Data: USDA NASS Quickstats
 ```{r}
 nc <- c %>% filter(GEOID %in% counties$GEOID, year == 2017) %>% filter(!is.na(net_income))
+
+# STATS
+c %>% filter(year == 2017, net_income < 0) %>% arrange(net_income) # 444/3034 reporting counties
 
 #464 counties > 10%
 
