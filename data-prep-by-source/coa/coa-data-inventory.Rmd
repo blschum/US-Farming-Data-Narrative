@@ -1,0 +1,709 @@
+---
+title: "data-inventory"
+author: "Britta Schumacher"
+date: "February 8, 2021"
+output: 
+  html_document:
+    theme: flatly
+    toc: yes
+    toc_float: true
+    code_folding: hide
+---
+
+Farm Demographics Highlights (2014): https://www.nass.usda.gov/Publications/Highlights/2014/Farm_Demographics/Highlights_Farm_Demographics.pdf
+
+What follows is an inventory of data availability through time and across space for various demographic variables from the COA (these are both variables we have previously cleaned and tidied and NEW variables that I've sought out since reading Horst & Marion). This .RDS only has data for 2002, 2007, 2012, and 2017, so I'll have to scrape for individual .csv's from QuickStats for 1997!
+
+### Let's just explore this thing a bit, again... I'm pretty rusty on the weird, nested, COA-structure.
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(viridis)
+cty <- readRDS("./data/county.RDS")
+coa <- readRDS("./data/NASS_census.RDS")
+# okay so there are 4 SECTOR_DESC options, one is "DEMOGRAPHICS"; let's filter for that and see what options we have
+d <- coa %>% filter(SECTOR_DESC == "DEMOGRAPHICS")
+
+# there are a whole bunch of options within GROUP_DESC, but first I am going to look at "OPERATORS" & "PRODUCERS"
+do <- d %>% filter(GROUP_DESC == "OPERATORS" | GROUP_DESC == "PRODUCERS")
+
+# let's just look into Black/African American and see what we got
+dor <- do %>%  filter(DOMAIN_DESC == "TOTAL") %>% filter(COUNTY_NAME == "BERKS") %>% select(GEOID, YEAR, COMMODITY_DESC, STATISTICCAT_DESC, UNIT_DESC, SHORT_DESC, VALUE)
+
+# we have options for operators, operations, and acres operated... could be interesting... (& we'll have this for all demographic categories)
+# There are so many different ways to slice this data... I'm having a hard time making decisions about the "how".
+
+
+```
+
+## Who are our (US) farmers? (see https://usafacts.org/articles/farmer-demographics/) and how have they shifted in the 21st century thus far?
+
+# Sex
+```{r message=FALSE, warning=FALSE}
+s <- do %>% filter(CLASS_DESC == "MALE" | CLASS_DESC == "FEMALE") %>% filter(DOMAIN_DESC == "TOTAL") %>% filter(AGG_LEVEL_DESC == "COUNTY") %>%  select(GEOID, YEAR, CLASS_DESC, COMMODITY_DESC, STATISTICCAT_DESC, UNIT_DESC, SHORT_DESC, VALUE) %>% filter(SHORT_DESC != "OPERATORS, PRINCIPAL, FEMALE - AREA OPERATED, MEASURED IN ACRES / OPERATION")
+
+# total available
+data_avail <- s %>% 
+  group_by(YEAR, SHORT_DESC) %>% 
+  summarise(count_NA = sum(is.na(VALUE)),
+            n = sum(length(VALUE))) %>% 
+  mutate(perc = 1 - (count_NA/n)) %>% # availability determined by NA/n
+  mutate(cty_rep = (n/3130)) %>% # percent of cty's represented in data
+  mutate(t_m = (3130-n) + count_NA) %>% # total number of missing data points (including NA and non-existent data)
+  mutate(t = 1 - (t_m/3130))
+data_avail
+
+levels(s$STATISTICCAT_DESC)[levels(s$STATISTICCAT_DESC)=="PRODUCERS"] <- "OPERATORS"
+levels(s$COMMODITY_DESC)[levels(s$COMMODITY_DESC)=="PRODUCERS"] <- "OPERATORS"
+levels(s$COMMODITY_DESC)[levels(s$COMMODITY_DESC)=="PRODUCERS, PRINCIPAL"] <- "OPERATORS, PRINCIPAL"
+
+# we've actually got some pretty decent data availability, here.
+sw <- s %>% select(GEOID, YEAR, CLASS_DESC, COMMODITY_DESC, STATISTICCAT_DESC, VALUE) %>% filter(STATISTICCAT_DESC == "OPERATORS" | STATISTICCAT_DESC == "OPERATIONS" | STATISTICCAT_DESC == "AREA OPERATED") %>% filter(COMMODITY_DESC == "OPERATORS")
+
+st <- sw %>% pivot_wider(names_from = STATISTICCAT_DESC, values_from = VALUE)
+
+colnames(st) <- c("GEOID", "YEAR", "SEX", "TYPE", "AREA_OPERATED", "OPERATIONS", "OPERATORS")
+
+sb <- s %>% select(GEOID, YEAR, CLASS_DESC, COMMODITY_DESC, STATISTICCAT_DESC, VALUE) %>% filter(STATISTICCAT_DESC == "OPERATIONS" | STATISTICCAT_DESC == "AREA OPERATED") %>% filter(COMMODITY_DESC == "OPERATORS, PRINCIPAL")
+
+ss <- sb %>% pivot_wider(names_from = STATISTICCAT_DESC, values_from = VALUE) 
+
+colnames(ss) <- c("GEOID", "YEAR", "SEX", "TYPE", "AREA_OPERATED", "OPERATIONS")
+ss[,"OPERATORS"] <- NA
+
+sex <- rbind(st, ss)
+```
+
+### Now let's visualize!
+```{r message=FALSE, warning=FALSE}
+# Women operators and primary operators 
+fp <- sex %>% filter(SEX == "FEMALE") %>% filter(TYPE == "OPERATORS, PRINCIPAL")
+ggplot(fp, aes(YEAR, AREA_OPERATED)) + geom_jitter() + ylim(0,750000) + ggtitle("Acreage, Female Primary Op")
+boxplot(AREA_OPERATED ~ YEAR, data = fp, main = "Acreage, Female Primary Op", outline=FALSE)
+ggplot(fp, aes(YEAR, OPERATIONS)) + geom_jitter() + ylim(0,2500) + ggtitle("# of Operations, Female Primary Op")
+boxplot(OPERATIONS ~ YEAR, data = fp, main = "# of Operations, Female Primary Op", outline=FALSE)
+f <- sex %>% filter(SEX == "FEMALE") %>% filter(TYPE == "OPERATORS")
+ggplot(f, aes(YEAR, AREA_OPERATED)) + geom_jitter() + ylim(0,1000000) + ggtitle("Acreage, Female Op")
+boxplot(AREA_OPERATED ~ YEAR, data = f, main = "Acreage, Female Op", outline=FALSE)
+ggplot(f, aes(YEAR, OPERATIONS)) + geom_jitter()  + ggtitle("# of Operations, Female Op")
+boxplot(OPERATIONS ~ YEAR, data = f, main = "# of Operations, Female Op", outline=FALSE)
+ggplot(f, aes(YEAR, OPERATORS)) + geom_jitter()  + ggtitle("# of Operators, Female Op")
+boxplot(OPERATORS ~ YEAR, data = f, main = "# of Operators, Female Op", outline=FALSE)
+
+# Male operators and primary operators
+mp <- sex %>% filter(SEX == "MALE") %>% filter(TYPE == "OPERATORS, PRINCIPAL")
+boxplot(AREA_OPERATED ~ YEAR, data = mp, main = "Acreage, Male Primary Op", outline=FALSE)
+boxplot(OPERATIONS ~ YEAR, data = mp, main = "# of Operations, Male Primary Op", outline=FALSE)
+m <- sex %>% filter(SEX == "MALE") %>% filter(TYPE == "OPERATORS")
+boxplot(AREA_OPERATED ~ YEAR, data = m, main = "Acreage, Male Op", outline=FALSE) # only 2017
+boxplot(OPERATIONS ~ YEAR, data = m, main = "# of Operations, Male Op", outline=FALSE) # only 2017
+boxplot(OPERATORS ~ YEAR, data = m, main = "# of Operators, Male Op", outline=FALSE) # only 2017
+
+# Percent female
+m <- sex %>% filter(SEX == "MALE")
+f <- sex %>% filter(SEX == "FEMALE")
+
+share <- merge(m,f, by = c("GEOID", "YEAR", "TYPE"))
+
+percf <- share %>% mutate(share_areaopf = AREA_OPERATED.y / (AREA_OPERATED.x + AREA_OPERATED.y)*100,
+                          share_opf = OPERATIONS.y / (OPERATIONS.x + OPERATIONS.y)*100,
+                          share_optrsf = OPERATORS.y / (OPERATORS.x + OPERATORS.y)*100) %>% 
+  select(GEOID, YEAR, TYPE, share_areaopf, share_opf, share_optrsf)
+
+percf_p <- percf %>% filter(TYPE == "OPERATORS, PRINCIPAL")
+percf_o <- percf %>% filter(TYPE == "OPERATORS")
+# jitterplot/boxplot
+# primary operators
+ggplot(percf_p, aes(YEAR, share_areaopf)) + geom_jitter() + ggtitle("% Acreage, Female Primary Op")
+boxplot(share_areaopf ~ YEAR, data = percf_p, main = "% Acreage, Female Primary Op", outline=FALSE)
+ggplot(percf_p, aes(YEAR, share_opf)) + geom_jitter() + ggtitle("% Operations, Female Primary Op")
+boxplot(share_opf ~ YEAR, data = percf_p, main = "% Operations, Female Primary Op", outline=FALSE)
+# operators onlya share in 2017 (did not record males in previous years)
+ggplot(percf_o, aes(YEAR, share_areaopf)) + geom_jitter() + ggtitle("% Acreage, Female Op")
+boxplot(share_areaopf ~ YEAR, data = percf_o, main = "% Acreage, Female Op", outline=FALSE)
+ggplot(percf_o, aes(YEAR, share_opf)) + geom_jitter() + ggtitle("% Operations, Female Op")
+boxplot(share_opf ~ YEAR, data = percf_o, main = "% Operations, Female Op", outline=FALSE)
+ggplot(percf_o, aes(YEAR, share_optrsf)) + geom_jitter() + ggtitle("% Operators, Female Op")
+boxplot(share_optrsf ~ YEAR, data = percf_o, main = "% Operators, Female Op", outline=FALSE)
+# Maps
+library(spdplyr)
+library(tmap)
+sp_percf <- sp::merge(cty, percf, by = "GEOID", duplicateGeoms = TRUE, all = TRUE)
+
+build_sp_sex <- function(type, year, variable, colors, legend) {
+  
+  x <- sp_percf %>% 
+    filter(TYPE == type) %>% 
+    filter(YEAR == year)
+
+  map <- tm_shape(cty) + tm_polygons(col="grey", border.col = "transparent") +
+  tm_shape(x) + 
+    tm_polygons(col=variable, style = "quantile", n = 6, palette = colors, border.col = "transparent",
+              legend.hist = TRUE, title = legend) +
+    tm_legend(outside = TRUE, hist.width = 1.5) +
+    tm_layout(frame= FALSE, legend.hist.size = 0.5)
+  
+  return(map)
+
+}
+
+build_sp_sex2 <- function(type, year, variable, breaks, colors, legend) {
+  
+  x <- sp_percf %>% 
+    filter(TYPE == type) %>% 
+    filter(YEAR == year)
+
+  map <- tm_shape(cty) + tm_polygons(col="grey", border.col = "transparent") +
+  tm_shape(x) + 
+    tm_polygons(col=variable, breaks = breaks, n = 6, palette = colors, border.col = "transparent",
+              legend.hist = TRUE, title = legend) +
+    tm_legend(outside = TRUE, hist.width = 1.5) +
+    tm_layout(frame= FALSE, legend.hist.size = 0.5)
+  
+  return(map)
+
+}
+
+build_sp_sex2("OPERATORS, PRINCIPAL", 2002, "share_areaopf", c(0,2.5,5,7.5,10,15,20,70), "Greens", "% Acreage, Female Primary Op - 2002")
+build_sp_sex2("OPERATORS, PRINCIPAL", 2007, "share_areaopf", c(0,2.5,5,7.5,10,15,20,70), "Greens", "% Acreage, Female Primary Op - 2007")
+build_sp_sex2("OPERATORS, PRINCIPAL", 2012, "share_areaopf", c(0,2.5,5,7.5,10,15,20,70), "Greens", "% Acreage, Female Primary Op - 2012")
+build_sp_sex2("OPERATORS, PRINCIPAL", 2017, "share_areaopf", c(0,10,15,20,25,30,35,70), "")
+# difference maps
+x <- percf %>% 
+  filter(YEAR == 2002) %>% 
+  select(!YEAR)
+
+x2 <- percf %>% 
+  filter(YEAR == 2017) %>% 
+  select(!YEAR)
+
+y <- merge(x, x2, by = c("GEOID", "TYPE"))
+ydiff <- y %>% 
+    mutate(diff_areaopf = share_areaopf.y - share_areaopf.x,
+                          diff_opf = share_opf.y - share_opf.x) %>% 
+    select(GEOID, TYPE, diff_areaopf, diff_opf)
+
+sp_diffsex <- sp::merge(cty, ydiff, by = "GEOID", duplicateGeoms = TRUE, all = TRUE)
+
+library(RColorBrewer)
+tm_shape(cty) + tm_polygons(col="grey", border.col = "transparent") +
+  tm_shape(sp_diffsex) + 
+    tm_polygons(col= "diff_areaopf", breaks = c(-50,0,10,15,20,25,50), n = 6, palette = "RdBu", border.col = "white",
+              legend.hist = TRUE, title = "Difference in % Female\noperated acreage (2002 - 2017)") +
+    tm_legend(outside = TRUE, hist.width = 1.5) +
+    tm_layout(frame= FALSE, legend.hist.size = 0.5)
+
+```
+So there's some cool stuff here.... female primary operators and operators in general have a HUGE bump in 2017 compared to the previous 3 COA years and almost ALL counties experience an increase in % female operatorship on agricultural lands between 2002 and 2017. Booya, ladies! Get it! Plus the data availability is REAL good.
+
+# Race
+```{r}
+r <- do %>% filter(CLASS_DESC == "AMERICAN INDIAN OR ALASKA NATIVE" | CLASS_DESC == "BLACK OR AFRICAN AMERICAN" | CLASS_DESC == "MULTI-RACE" | CLASS_DESC == "WHITE" | CLASS_DESC == "HISPANIC" | CLASS_DESC == "ASIAN" | CLASS_DESC == "NATIVE HAWAIIAN OR OTHER PACIFIC ISLANDER") %>% filter(AGG_LEVEL_DESC == "COUNTY") %>% filter(DOMAIN_DESC == "TOTAL") %>% select(GEOID, YEAR, CLASS_DESC, COMMODITY_DESC, STATISTICCAT_DESC, UNIT_DESC, SHORT_DESC, VALUE) 
+
+levels(r$STATISTICCAT_DESC)[levels(r$STATISTICCAT_DESC)=="PRODUCERS"] <- "OPERATORS"
+levels(r$COMMODITY_DESC)[levels(r$COMMODITY_DESC)=="PRODUCERS"] <- "OPERATORS"
+levels(r$COMMODITY_DESC)[levels(r$COMMODITY_DESC)=="PRODUCERS, PRINCIPAL"] <- "OPERATORS, PRINCIPAL"
+
+data_avail_race <- r %>% 
+  group_by(YEAR, SHORT_DESC) %>% 
+  summarise(count_NA = sum(is.na(VALUE)),
+            n = sum(length(VALUE))) %>% 
+  mutate(perc = 1 - (count_NA/n)) %>% # availability determined by NA/n
+  mutate(cty_rep = (n/3130)) %>% # percent of cty's represented in data
+  mutate(t_m = (3130-n) + count_NA) %>% # total number of missing data points (including NA and non-existent data)
+  mutate(t = 1 - (t_m/3130))
+data_avail_race
+
+rw <- r %>% select(GEOID, YEAR, CLASS_DESC, SHORT_DESC, COMMODITY_DESC, STATISTICCAT_DESC, VALUE) %>% filter(STATISTICCAT_DESC == "OPERATORS" | STATISTICCAT_DESC == "OPERATIONS" | STATISTICCAT_DESC == "AREA OPERATED") %>% filter(COMMODITY_DESC == "OPERATORS" | COMMODITY_DESC == "OPERATORS, PRINCIPAL") %>% filter(SHORT_DESC != "OPERATORS, HISPANIC, YEARS ON PRESENT OPERATION, GE 10 YEARS - NUMBER OF OPERATORS" & SHORT_DESC != "OPERATORS, HISPANIC, YEARS ON PRESENT OPERATION, 3 TO 4 YEARS - NUMBER OF OPERATORS" & SHORT_DESC != "OPERATORS, HISPANIC, YEARS ON PRESENT OPERATION, 5 TO 9 YEARS - NUMBER OF OPERATORS" & SHORT_DESC != "OPERATORS, HISPANIC, YEARS ON PRESENT OPERATION, LT 3 YEARS - NUMBER OF OPERATORS" & SHORT_DESC != "OPERATORS, HISPANIC, PRIMARY OCCUPATION, FARMING - NUMBER OF OPERATORS" & SHORT_DESC != "OPERATORS, HISPANIC, PRIMARY OCCUPATION, (EXCL FARMING) - NUMBER OF OPERATORS" & SHORT_DESC != "OPERATORS, HISPANIC, DAYS WORKED OFF OPERATION, 0 DAYS - NUMBER OF OPERATORS" & SHORT_DESC != "OPERATORS, HISPANIC, DAYS WORKED OFF OPERATION, GE 1 DAYS - NUMBER OF OPERATORS" & SHORT_DESC != "OPERATORS, HISPANIC - AREA OPERATED, MEASURED IN ACRES / OPERATION" & SHORT_DESC != "OPERATORS, HISPANIC - AGE, AVG, MEASURED IN YEARS") %>% select(!SHORT_DESC)
+
+rw %>% filter(!is.na(VALUE)) %>% filter(STATISTICCAT_DESC == "OPERATIONS") %>%  group_by(YEAR, CLASS_DESC) %>% summarise(operations = sum(VALUE))  %>%  
+ggplot(.) +
+    geom_bar(aes(fill=CLASS_DESC, y=operations, x=YEAR), position="stack", stat="identity") +
+    scale_fill_viridis(discrete = T, option = "magma") +
+    ggtitle("Proportion of Operations: By Race") +
+    theme_bw() +
+    xlab("") +
+    theme(legend.position="bottom") + guides(fill = guide_legend(nrow = 3))
+
+rw %>% filter(!is.na(VALUE)) %>% filter(STATISTICCAT_DESC == "OPERATORS") %>%  group_by(YEAR, CLASS_DESC) %>% summarise(operators = sum(VALUE))  %>%  
+ggplot(.) +
+    geom_bar(aes(fill=CLASS_DESC, y=operators, x=YEAR), position="stack", stat="identity") +
+    scale_fill_viridis(discrete = T, option = "magma") +
+    ggtitle("Proportion of Operators: By Race") +
+    theme_bw() +
+    xlab("") +
+    theme(legend.position="bottom") + guides(fill = guide_legend(nrow = 3))
+
+rw %>% filter(!is.na(VALUE)) %>% filter(STATISTICCAT_DESC == "AREA OPERATED") %>%  group_by(YEAR, CLASS_DESC) %>% summarise(area_operated = sum(VALUE))  %>%  
+ggplot(.) +
+    geom_bar(aes(fill=CLASS_DESC, y=area_operated, x=YEAR), position="stack", stat="identity") +
+    scale_fill_viridis(discrete = T, option = "magma") +
+    ggtitle("Proportion of Area Operated: By Race") +
+    theme_bw() +
+    xlab("") +
+    theme(legend.position="bottom") + guides(fill = guide_legend(nrow = 3))
+
+rt <- rw %>% pivot_wider(names_from = CLASS_DESC, values_from = VALUE)
+
+rb <- r %>% select(GEOID, YEAR, CLASS_DESC, SHORT_DESC, COMMODITY_DESC, STATISTICCAT_DESC, VALUE) %>% filter(STATISTICCAT_DESC == "OPERATORS, PRINCIPAL" | STATISTICCAT_DESC == "OPERATIONS" | STATISTICCAT_DESC == "AREA OPERATED") %>% filter(COMMODITY_DESC == "OPERATORS" | COMMODITY_DESC == "OPERATORS, PRINCIPAL") %>% filter(SHORT_DESC != "OPERATORS, HISPANIC, YEARS ON PRESENT OPERATION, GE 10 YEARS - NUMBER OF OPERATORS" & SHORT_DESC != "OPERATORS, HISPANIC, YEARS ON PRESENT OPERATION, 3 TO 4 YEARS - NUMBER OF OPERATORS" & SHORT_DESC != "OPERATORS, HISPANIC, YEARS ON PRESENT OPERATION, 5 TO 9 YEARS - NUMBER OF OPERATORS" & SHORT_DESC != "OPERATORS, HISPANIC, YEARS ON PRESENT OPERATION, LT 3 YEARS - NUMBER OF OPERATORS" & SHORT_DESC != "OPERATORS, HISPANIC, PRIMARY OCCUPATION, FARMING - NUMBER OF OPERATORS" & SHORT_DESC != "OPERATORS, HISPANIC, PRIMARY OCCUPATION, (EXCL FARMING) - NUMBER OF OPERATORS" & SHORT_DESC != "OPERATORS, HISPANIC, DAYS WORKED OFF OPERATION, 0 DAYS - NUMBER OF OPERATORS" & SHORT_DESC != "OPERATORS, HISPANIC, DAYS WORKED OFF OPERATION, GE 1 DAYS - NUMBER OF OPERATORS" & SHORT_DESC != "OPERATORS, HISPANIC - AREA OPERATED, MEASURED IN ACRES / OPERATION" & SHORT_DESC != "OPERATORS, HISPANIC - AGE, AVG, MEASURED IN YEARS") %>% select(!SHORT_DESC)
+
+# let's build a stacked bar chart
+library(viridis)
+rb %>% filter(!is.na(VALUE)) %>% filter(STATISTICCAT_DESC == "OPERATIONS") %>%  group_by(YEAR, CLASS_DESC) %>% summarise(operations = sum(VALUE))  %>%  
+ggplot(.) +
+    geom_bar(aes(fill=CLASS_DESC, y=operations, x=YEAR), position="stack", stat="identity") +
+    scale_fill_viridis(discrete = T, option = "magma") +
+    ggtitle("Proportion of Operations: By Race") +
+    theme_bw() +
+    xlab("") +
+    theme(legend.position="bottom") + guides(fill = guide_legend(nrow = 3))
+
+rb %>% filter(!is.na(VALUE)) %>% filter(STATISTICCAT_DESC == "AREA OPERATED") %>%  group_by(YEAR, CLASS_DESC) %>% summarise(area_operated = sum(VALUE))  %>%  
+ggplot(.) +
+    geom_bar(aes(fill=CLASS_DESC, y=area_operated, x=YEAR), position="stack", stat="identity") +
+    scale_fill_viridis(discrete = T, option = "magma") +
+    ggtitle("Proportion of Area Operated: By Race") +
+    theme_bw() +
+    xlab("") +
+    theme(legend.position="bottom") + guides(fill = guide_legend(nrow = 3))
+
+# clean her up!
+rs <- rb %>% pivot_wider(names_from = CLASS_DESC, values_from = VALUE)
+
+race <- rbind(rs, rt)
+colnames(race) <- c("GEOID", "YEAR", "OPERATOR", "TYPE", "NATIVE_AMER", "BLACK", "MULTI", "WHITE", "HISPANIC", "ASIAN", "PACIFIC_ISL")
+race[is.na(race)] <- 0
+
+# proporation of each race
+race_prop <- race %>% mutate(TOTAL = rowSums(.[5:11])) %>% 
+  mutate(POC = (NATIVE_AMER + BLACK + MULTI + HISPANIC + ASIAN + PACIFIC_ISL)/TOTAL*100,
+         NATIVE_AMER = NATIVE_AMER/TOTAL*100,
+         BLACK = BLACK/TOTAL*100,
+         MULTI = MULTI/TOTAL*100,
+         WHITE = WHITE/TOTAL*100,
+         HISPANIC = HISPANIC/TOTAL*100,
+         ASIAN = ASIAN/TOTAL*100,
+         PACIFIC_ISL = PACIFIC_ISL/TOTAL*100) %>% 
+  select("GEOID", "YEAR", "OPERATOR", "TYPE", "WHITE", "POC", "NATIVE_AMER", "BLACK", "MULTI", "HISPANIC", "ASIAN", "PACIFIC_ISL", "TOTAL") %>% 
+  mutate_at(5:11, round, 3)
+
+#########################################################################################################
+# difference maps
+z <- race_prop %>% 
+  filter(YEAR == 2002) %>% 
+  select(!YEAR)
+
+z2 <- race_prop %>% 
+  filter(YEAR == 2017) %>% 
+  select(!YEAR) %>% 
+  filter(OPERATOR == "OPERATORS")
+
+v <- merge(z, z2, by = c("GEOID", "TYPE"))
+vdiff <- v %>% 
+    mutate(diff_WHITE = WHITE.y - WHITE.x,
+           diff_POC = POC.y - POC.x,
+           diff_NATIVE_AMER = NATIVE_AMER.y - NATIVE_AMER.x,
+           diff_BLACK = BLACK.y - BLACK.x,
+           diff_MULTI = MULTI.y - MULTI.x,
+           diff_HISPANIC = HISPANIC.y - HISPANIC.x,
+           diff_ASIAN = ASIAN.y - ASIAN.x,
+           diff_PACIFIC_ISL = PACIFIC_ISL.y - PACIFIC_ISL.x,
+           diff_TOTAL = TOTAL.y - TOTAL.x) %>% 
+    select(GEOID, TYPE, diff_WHITE, diff_WHITE, diff_POC, diff_NATIVE_AMER, diff_BLACK, diff_MULTI, diff_HISPANIC, diff_ASIAN, diff_PACIFIC_ISL, diff_TOTAL)
+
+# Let's build some maps of these differences!
+sp_diffrace <- sp::merge(cty, vdiff, by = "GEOID", duplicateGeoms = TRUE, all = TRUE)
+
+library(RColorBrewer)
+
+build_sp_race <- function(type, race, legend) {
+  
+  x <- sp_diffrace %>% 
+    filter(TYPE == type)
+
+  map <- tm_shape(cty) + tm_polygons(col="grey", border.col = "transparent") +
+  tm_shape(x) + 
+    tm_polygons(col=race, style = "quantile", n = 6, palette = "RdBu", border.col = "transparent",
+              legend.hist = TRUE, title = legend) +
+    tm_legend(outside = TRUE, hist.width = 1.5) +
+    tm_layout(frame= FALSE, legend.hist.size = 0.5)
+  
+  return(map)
+
+}
+
+build_sp_race2 <- function(type, race, breaks, legend) {
+  
+  x <- sp_diffrace %>% 
+    filter(TYPE == type)
+
+  map <- tm_shape(cty) + tm_polygons(col="grey", border.col = "transparent") +
+  tm_shape(x) + 
+    tm_polygons(col=race, breaks = breaks, palette = "RdBu", border.col = "transparent",
+              legend.hist = TRUE, title = legend) +
+    tm_legend(outside = TRUE, hist.width = 1.5) +
+    tm_layout(frame= FALSE, legend.hist.size = 0.5)
+  
+  return(map)
+
+}
+
+build_sp_race2("AREA OPERATED", "diff_WHITE", c(-100,-10,-5,-2.5,0,2.5,5,10,20,100), "Difference in % Area Operated\nby White Folx (2002-2017)")
+build_sp_race2("AREA OPERATED", "diff_POC", c(-100,-10,-5,-2.5,0,2.5,5,10,20,100), "Difference in % Area Operated by\nPOC (incl. Hisp.) (2002-2017)")
+build_sp_race2("AREA OPERATED", "diff_NATIVE_AMER", c(-100,-10,-5,-2.5,0,2.5,5,10,20,100), "Difference in % Area Operated by\nNative Americans & Alaskans (2002-2017)")
+build_sp_race2("AREA OPERATED", "diff_BLACK", c(-100,-10,-5,-2.5,0,2.5,5,10,20,100), "Difference in % Area Operated by\nBlck Folx (2002-2017)")
+build_sp_race2("AREA OPERATED", "diff_MULTI", c(-100,-10,-5,-2.5,0,2.5,5,10,20,100), "Difference in % Area Operated by\nMulti-race Folx (2002-2017)")
+build_sp_race2("AREA OPERATED", "diff_HISPANIC", c(-100,-10,-5,-2.5,0,2.5,5,10,20,100), "Difference in % Area Operated by\nHispanic Folx (2002-2017)")
+
+build_sp_race2("AREA OPERATED", "diff_TOTAL", c(-1750000,-100000,-50000,-25000,-10000,0,10000,25000,50000,100000,500000,1000000,5400000), "Difference in Area Operated \nAcross Race (2002-2017)")
+
+# Operators
+build_sp_race2("OPERATORS", "diff_WHITE", c(-100,-10,-5,-2.5,0,2.5,5,10,20,100), "Difference in % Operators\nby White Folx (2002-2017)")
+build_sp_race2("OPERATORS", "diff_POC", c(-100,-10,-5,-2.5,0,2.5,5,10,20,100), "Difference in % Area Operated by\nPOC (incl. Hisp.) (2002-2017)")
+build_sp_race2("OPERATORS", "diff_NATIVE_AMER", c(-100,-10,-5,-2.5,0,2.5,5,10,20,100), "Difference in % Operators by\nNative Americans & Alaskans (2002-2017)")
+build_sp_race2("OPERATORS", "diff_BLACK", c(-100,-10,-5,-2.5,0,2.5,5,10,20,100), "Difference in % Operators \nBlck Folx (2002-2017)")
+build_sp_race2("OPERATORS", "diff_MULTI", c(-100,-10,-5,-2.5,0,2.5,5,10,20,100), "Difference in % Operators \nMulti-race Folx (2002-2017)")
+build_sp_race2("OPERATORS", "diff_HISPANIC", c(-100,-10,-5,-2.5,0,2.5,5,10,20,100), "Difference in % Operators \nHispanic Folx (2002-2017)")
+
+build_sp_race2("OPERATORS", "diff_TOTAL", c(-1000,-300,-250,-100,0,100,250,500,1000,8500), "Difference in # Operators \nAcross Race (2002-2017)") # for some reason this last map isn't visualizing correctly
+
+# Operations
+build_sp_race2("OPERATIONS", "diff_WHITE", c(-100,-10,-5,-2.5,0,2.5,5,10,20,100), "Difference in % Operations\nby White Folx (2002-2017)")
+build_sp_race2("OPERATORS", "diff_POC", c(-100,-10,-5,-2.5,0,2.5,5,10,20,100), "Difference in % Operations\nPOC (incl. Hisp.) (2002-2017)")
+build_sp_race2("OPERATIONS", "diff_NATIVE_AMER", c(-100,-10,-5,-2.5,0,2.5,5,10,20,100), "Difference in % Operations\nNative Americans & Alaskans (2002-2017)")
+build_sp_race2("OPERATIONS", "diff_BLACK", c(-100,-10,-5,-2.5,0,2.5,5,10,20,100), "Difference in % Operations\nBlck Folx (2002-2017)")
+build_sp_race2("OPERATIONS", "diff_MULTI", c(-100,-10,-5,-2.5,0,2.5,5,10,20,100), "Difference in % Operations\nMulti-race Folx (2002-2017)")
+build_sp_race2("OPERATIONS", "diff_HISPANIC", c(-100,-10,-5,-2.5,0,2.5,5,10,20,100), "Difference in % Operations\nHispanic Folx (2002-2017)")
+
+build_sp_race2("OPERATIONS", "diff_TOTAL", c(-2000,-300,-250,-100,0,100,250,500,1000,5500), "Difference in # Operations\nAcross Race (2002-2017)") # for some reason this last map isn't visualizing correctly
+```
+
+Interesting stuff here, too. As Horst & Marion point out, and as we know, the COA is inconsistent--in this case, for disclosure reasons (I'm guessing). So in some counties, we see that there are 2 Hispanic operators, but do not see their acreage recorded and visa versa. So we would have to lead with this caveat. There is very little missing data for 'OPERATIONS' or 'OPERATORS', but much more missing for 'ACRES OPERATED'. The racial composition of counties is changing variably across space and time, with some places like the southwest becoming more Native operated (so cool!). Lots of other trends to be aware of here, too!
+
+# Age, Experience, Tenure
+```{r}
+FRR <- readRDS("./data/FRR.RDS")
+BSDS <- readRDS("./data/BSDS_att_raw.RDS")
+atts <- BSDS %>% select(GEOID,county, year, age, exp, full_owner, part_owner, tenant,n_op,tot_acres,acres_per_op) %>% 
+  mutate(owner = full_owner + part_owner, # number of owners (including partial owners)
+         p_own = owner / (owner + tenant)*100, # percent acres operated by owners (including partial owners)
+         ave_acres_op = tot_acres/n_op)  %>% 
+    mutate_at(13:14, round, 1)
+
+# Add FRR for faceting, viz, etc.
+FRR <- FRR %>% 
+  spdplyr::select(GEOID, FRR, FRR_NAME)
+
+atts <- merge(atts, FRR, by = "GEOID")
+
+# Start viz
+# Number of operations
+ggplot(atts) +
+  geom_jitter(aes(x = year, y = n_op, color = FRR_NAME)) +
+  #scale_y_continuous(limits = c(5, 20)) +
+  theme_bw() +
+  labs(title = "Number of Operations per County") 
+
+boxplot(n_op ~ year, data = atts, main = "Number of Operations per County", outline = FALSE) 
+
+# Median farm size
+ggplot(atts) +
+  geom_jitter(aes(x = year, y = acres_per_op, color = FRR_NAME)) +
+  scale_y_continuous(limits = c(0, 5000)) +
+  theme_bw() +
+  labs(title = "Median Farm Size") 
+
+boxplot(acres_per_op ~ year, data = atts, main = "Median Farm Size", outline = FALSE) 
+
+# Average farm size
+ggplot(atts) +
+  geom_jitter(aes(x = year, y = ave_acres_op, color = FRR_NAME)) +
+  scale_y_continuous(limits = c(0, 20000)) +
+  theme_bw() +
+  labs(title = "Average Farm Size") 
+
+boxplot(ave_acres_op ~ year, data = atts, main = "Average Farm Size", outline = FALSE) 
+
+ggplot(atts, aes(x = year, y = ave_acres_op, fill = FRR_NAME)) +
+  geom_boxplot(outlier.shape = NA) +
+  labs(fill = "FRR") +
+  theme_classic() +
+  theme(axis.title=element_text(size=14),
+        axis.text=element_text(size=11)) +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_text(size=9, angle=45, hjust = 1)) +
+  theme(strip.background = element_blank()) + 
+  theme(legend.position = "bottom") + 
+  #scale_fill_manual(name = "FRR_NAME", values=colors) +
+  coord_cartesian(ylim = c(0,7500)) 
+
+boxplot(age ~ year, data = atts, main = "Average Age of Principle Operator", outline=FALSE)
+boxplot(exp ~ year, data = atts, main = "Average Years Experience of Principle Operator", outline=FALSE)
+
+```
+
+# Farm size
+```{r}
+BSDS <- readRDS("./data/BSDS_att_raw.RDS")
+
+size <- BSDS %>% select(c(1:3,26,34,acres_per_op)) %>% mutate(ave = round(tot_acres/n_op))
+
+counties <- readRDS("C:/Users/bls54/OneDrive/Grad/Emory/Horst&Marion-Expansion/coa/data/coterm_cty_sf.RDS") 
+states <- readRDS("C:/Users/bls54/OneDrive/Grad/Emory/Horst&Marion-Expansion/coa/data/states_sf.RDS") 
+states <- states %>% filter(STATE_FIPS %in% counties$STATEFP)
+
+head(counties)
+head(states)
+
+land_sf <- merge(counties, size, by = "GEOID")
+head(land_sf)
+
+ggplot() +
+  geom_sf(data = land_sf %>% filter(year == 2017, county != "Loving"), aes(fill = acres_per_op), color = "transparent") +
+  geom_sf(data = states, fill = "transparent", color = "dark gray") +
+  #map_theme +
+  #scale_fill_gradient(low = "dark red", high = "#FFCCCB") +
+  labs(title = "Acres per Operation on US Farms",
+       subtitle = "Median acres in 2017",
+      fill = "Acres per Operation") +
+  theme(legend.position = "right")
+```
+
+```{r}
+theme_map <- function(...) {
+  theme_minimal() +
+  theme(
+    # remove all axes
+    axis.line = element_blank(),
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks = element_blank(),
+
+    # borders and margins
+    panel.border = element_blank(),
+    
+    # titles
+    legend.title = element_text(size = 11),
+    legend.text = element_text(size = 7, hjust = 0,
+                               color = "black"),
+    plot.title = element_text(size = 15, hjust = 0.5,
+                              color = "black"),
+    plot.subtitle = element_text(size = 10, hjust = 0.5,
+                                 color = "black",
+                                 margin = margin(b = -0.1,
+                                                 t = -0.1,
+                                                 l = 2,
+                                                 unit = "cm"),
+                                 debug = F),
+
+    ...
+  )
+}
+```
+
+# Median & mean acres per operation ~ must functionalize!!
+```{r}
+library(viridis)
+library(sf)
+
+### Extract quantiles; use these to estimate quantiles, below!
+q<- land_sf %>%
+  pull(acres_per_op) %>%
+  quantile(probs = seq(0, 1, length.out = 7), na.rm = T) %>%
+  as.vector() # to remove names of quantiles, so idx below is numeric
+
+### What are the quantiles?
+# Mean
+quantiles <- c(0,150,300,600,1200,2500,60000)
+# Median
+quantiles_op <- c(0,40,70,90,130,260,40000)
+
+### Create custom labels
+# Mean
+labels <- c("0 – 150 acres",      "150 – 300 acres",    "300 – 600 acres",    "600 – 1200 acres",   "1200 – 2500 acres",  "> 2500 acres")
+# Median
+labels_op <- c("0 – 40 acres",      "40 – 70 acres",    "70 – 90 acres",    "90 – 130 acres",   "130 – 260 acres",  "> 260 acres")
+
+### Create a new variable with the quantiles
+# Mean
+df <- land_sf %>%
+  mutate(mean_quantiles = cut(ave,
+                               breaks = quantiles,
+                               labels = labels,
+                               include.lowest = T)) %>% 
+  filter(year == 2017) %>% 
+  filter(!is.na(ave)) 
+
+# Median
+df_op <- land_sf %>%
+  mutate(median_quantiles = cut(acres_per_op,
+                               breaks = quantiles_op,
+                               labels = labels_op,
+                               include.lowest = T)) %>% 
+  filter(year == 2017) %>% 
+  filter(!is.na(acres_per_op)) 
+
+### PLOT
+# Mean acres
+ggplot(data = df) +
+  geom_sf(mapping = aes(fill = mean_quantiles),color = "transparent",size = 0.01) +
+  geom_sf(data = states, fill = "transparent", color = "dark gray") +
+  scale_fill_viridis(option = "magma",name = "",alpha = 0.8, begin = 0.6, end = 0,discrete = T, 
+    guide = guide_legend(keyheight = unit(4, units = "mm"),title.position = "top",)) +
+ theme_map() +
+    theme(panel.grid.major = element_line(colour = "white")) +
+  ggsave('./viz/mean-acres.jpeg', width = 6, height = 4, dpi = 300)
+
+# Median acres
+ggplot(data = df_op) +
+  geom_sf(mapping = aes(fill = median_quantiles),color = "transparent",size = 0.01) +
+  geom_sf(data = states, fill = "transparent", color = "dark gray") +
+  scale_fill_viridis(option = "viridis",name = "",alpha = 0.8, begin = 0.6, end = 0, discrete = T, 
+                     guide = guide_legend(keyheight = unit(4, units = "mm"),title.position = "top",)) +
+  theme_map() +
+    theme(panel.grid.major = element_line(colour = "white")) +
+  ggsave('./viz/median-acres.jpeg', width = 6, height = 4, dpi = 300)
+```
+
+# Difference 2017-1997 operated acres
+```{r}
+library(RColorBrewer)
+area_op_diff <- land_sf %>% 
+  filter(year %in% c(1997,2017)) %>% 
+  select(1,10:16) %>% 
+  group_by(GEOID, county) %>% 
+  summarise(n_op = diff(n_op),
+            tot_acres = diff(tot_acres),
+            ave = diff(ave))
+
+### Extract quantiles; use these to estimate quantiles, below!
+q<- area_op_diff %>%
+  pull(ave) %>%
+  quantile(probs = seq(0, 1, length.out = 9), na.rm = T) %>%
+  as.vector() # to remove names of quantiles, so idx below is numeric
+
+quantiles_nop <- c(-2500,-250,-100,-50,0,50,100,250,5250)
+quantiles_totac <- c(-900000,-100000,-25000,-10000,0,10000,25000,100000,1500000)
+quantiles_ave <- c(-35000,-500,-50,-25,0,25,50,500,11000)
+### Create custom labels
+# n_op
+labels_nop <- c("< -250 acres",      "-250 – -100 acres",    "-100 – -50 acres",    "-50 – 0 acres",   "0 – 50 acres",  "50 - 100 acres", "100 - 250 acres", "> 250 acres")
+labels_totac <- c("< -100000 acres",      "-100000 – -25500 acres",    "-25000 – -10000 acres",    "-10000 – 0 acres",   "0 – 10000 acres",  "10000 - 25000 acres", "25000 - 100000 acres", "> 100000 acres")
+labels_ave <- c("< -500 acres",      "-500 – -50 acres",    "-50 – -25 acres",    "-25 – 0 acres",   "0 – 25 acres",  "25 - 50 acres", "50 - 500 acres", "> 500 acres")
+
+### Create a new variable with the quantiles
+# Number of operations (n_op)
+area_op_diff <- area_op_diff %>%
+  mutate(nop_quantiles = cut(n_op,
+                               breaks = quantiles_nop,
+                               labels = labels_nop,
+                               include.lowest = T)) %>% 
+  filter(!is.na(n_op)) 
+
+ggplot() +
+  geom_sf(data = area_op_diff, aes(fill = nop_quantiles), color = "transparent") +
+  geom_sf(data = states, fill = "transparent", color = "dark gray") +
+  theme_map() +
+  scale_fill_brewer(type = "div",palette = "RdBu",name="") +
+  theme(legend.position = "right") +
+  theme(panel.grid.major = element_line(colour = "white")) + 
+  ggsave('./viz/diff_nop.jpeg', width = 6, height = 4, dpi = 300)
+
+# Total agricultural acres
+area_op_diff <- area_op_diff %>%
+  mutate(totac_quantiles = cut(tot_acres,
+                               breaks = quantiles_totac,
+                               labels = labels_totac,
+                               include.lowest = T)) %>% 
+  filter(!is.na(tot_acres)) 
+
+ggplot() +
+  geom_sf(data = area_op_diff, aes(fill = totac_quantiles), color = "transparent") +
+  geom_sf(data = states, fill = "transparent", color = "dark gray") +
+  theme_map() +
+  scale_fill_brewer(type = "div",palette = "RdBu",name="") +
+  theme(legend.position = "right") +
+  theme(panel.grid.major = element_line(colour = "white")) + 
+  ggsave('./viz/diff_totacres.jpeg', width = 6, height = 4, dpi = 300)
+
+# Average acres / operation
+area_op_diff <- area_op_diff %>%
+  mutate(ave_quantiles = cut(ave,
+                               breaks = quantiles_ave,
+                               labels = labels_ave,
+                               include.lowest = T)) %>% 
+  filter(!is.na(ave)) 
+
+ggplot() +
+  geom_sf(data = area_op_diff, aes(fill = ave_quantiles), color = "transparent") +
+   geom_sf(data = states, fill = "transparent", color = "dark gray") +
+  theme_map() +
+  scale_fill_brewer(type = "div",palette = "RdBu",name="") +
+  theme(legend.position = "right") +
+  theme(panel.grid.major = element_line(colour = "white")) + 
+  ggsave('./viz/diff_ave.jpeg', width = 6, height = 4, dpi = 300)
+```
+
+# COA historical data
+```{r}
+h <- read.csv("./data/historical-coa.csv")
+
+
+# Average Operator Age
+h %>% 
+  ggplot(.) +
+  geom_line(aes(x = year, y = ave_age), color = "#88CCEE", size = 1.5) +
+  theme_bw() +
+  labs(title = "", color = "", y = "", x = "") +
+  coord_cartesian(xlim = c(1940,2017)) +
+  geom_vline(xintercept=c(1997), linetype="dotted") +
+  ggsave("./viz/ave-age.jpeg", width = 6, height = 4, dpi = 300)
+
+# Farm operators by race through time
+v = c("#88CCEE","#CC6677","#DDCC77")
+h %>% filter(!is.na(black)) %>% 
+  ggplot(.) +
+  geom_line(aes(x = year, y = white/1000000, color = "White operators (in 1Ms)"), size = 1, linetype = "longdash") +
+  geom_line(aes(x = year, y = black/100000, color = "Black operators (in 100ks)"), size = 1, linetype = "longdash") +
+  geom_line(aes(x = year, y = other/100000, color = "All Other Races operators (in 100ks)"), size = 1, linetype = "longdash") +
+  theme_bw() +
+  labs(title = "", color = "", y = "", x = "") +
+  scale_color_manual(name="",values = c("White operators (in 1Ms)" = "#88CCEE", "Black operators (in 100ks)" = "#CC6677", "All Other Races operators (in 100ks)" = "#DDCC77")) +
+  coord_cartesian(xlim = c(1900,2017)) +
+  geom_vline(xintercept=c(1997), linetype="dotted") +
+    theme(legend.position="bottom") +
+  ggsave("./viz/race.jpeg", width = 6.5, height = 4, dpi = 300)
+
+
+# Number of Farm operators by sex through time
+
+h %>%
+  select(year, male, female) %>% filter (!is.na(female)) %>% mutate(perc = female/male*100) %>% 
+  pivot_longer(-c(year, perc), names_to = "variable", values_to = "count") %>% 
+ggplot(.) +
+  geom_bar(aes(fill=variable, y=count/100000, x=year), position="dodge", stat="identity") +
+  geom_line(aes(x = year, y = perc, color = "% Female Primary Operators"), stat = "identity", size = 1.5) +
+  theme_bw() +
+  scale_fill_manual(name="",labels = c("Male", "Female"), values = c("#44AA99", "#332288")) +
+  scale_color_manual(name="",values = c("% Female Primary Operators" = "#DDCC77")) +
+  geom_vline(xintercept=c(1997), linetype="dotted") +
+  theme(legend.position="bottom") +
+  labs(title = "", y = "", x = "") +
+  ggsave('./viz/gender.jpeg', width = 6, height = 4, dpi = 300)
+
+# Experience
+
+h %>%
+  select(c(1,18:20)) %>% filter(!is.na(exp_05)) %>% mutate(perc = exp_10/(exp_05+exp_09+exp_10)) %>%
+  pivot_longer(!c(1,5), names_to = "exp", values_to = "count") %>%  
+ggplot(.) +
+  geom_bar(aes(fill = exp, y = count, x = year), position = "fill", stat = "identity") +
+  scale_fill_manual(name = "", labels = c("Less than 5", "5 to 9", "Greater than 10"), values=c("#117733","#44AA99","#88CCEE")) +
+  labs(title = "", color = "", y = "", x = "") +
+  geom_vline(xintercept=c(1997), linetype="dotted") +
+    theme_bw() +
+  theme(legend.position="bottom") +
+  ggsave('./viz/experience.jpeg', width = 6, height = 4, dpi = 300)
+
+# White v. Nonwhite ownership/tenancy
+
+```
