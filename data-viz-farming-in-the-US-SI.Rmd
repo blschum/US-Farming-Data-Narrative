@@ -56,7 +56,7 @@ theme_map <- function(...) {
     
     # titles
     legend.title = element_blank(),
-    legend.text = element_text(size = 7, hjust = 0,
+    legend.text = element_text(size = 8, hjust = 0,
                                color = "black"),
     plot.title = element_text(size = 15, hjust = 0.5,
                               color = "black"),
@@ -858,125 +858,6 @@ ggsave("./viz/SI-Figure18.png", dpi = 400, width = 200, height = 80, units = "mm
 
 # STATS
 i <- p %>% filter(GEOID %in% counties$GEOID) %>% filter(YEAR == 1969 | YEAR == 2019)
-```
-### **SI Figure ??**: 
-
-#### (A.) Percent of county acres covered by crop insurance in 2017; (B.) Dollars provided per agricultural acre in government payouts to farmers.
-
-```{r}
-#### (A.) Percent of county acres covered by crop insurance in 2017
-# county-level, in most recent year
-i <- c %>% filter(GEOID %in% counties$GEOID, year == 2017) %>% mutate(perc_insur = insur_acres/tot_acres*100) %>% filter(!is.na(perc_insur))
-
-ave(i$perc_insur)
-median(i$perc_insur)
-#464 counties > 10%
-
-i_sf <- merge(counties, i, by = "GEOID")
-
-# Pull quantiles
-q<- i_sf %>%
-  pull(perc_insur) %>%
-  quantile(probs = seq(0, 1, length.out = 7), na.rm = T) %>%
-  as.vector() 
-
-quantiles <- c(0,5,15,25,40,50,75,100)
-labels <- c("0 - 5%",      "5 - 15%",    "15 - 25%",    "25 - 40%",   "40 - 50%", "50 - 75%",  "> 75%")
-
-# Map ag contribution to GDP
-perc_insur <- i_sf %>%
-  mutate(quantiles = cut(perc_insur,
-                               breaks = quantiles,
-                               labels = labels,
-                               include.lowest = T)) %>% 
-  filter(year == 2017) %>% 
-ggplot(.) +
-  geom_sf(aes(fill = quantiles), color = "transparent") +
-  geom_sf(data = states, fill = "transparent", color = "dark gray") +
- theme_map() +
-    theme(panel.grid.major = element_line(colour = "white"), legend.position="bottom",
-          legend.key.size = unit(2, 'mm')) +
-  scale_fill_brewer(palette = "YlOrBr") 
-
-#### (B.) Dollars provided per agricultural acre in government payouts to farmers.
-# county-level, in most recent year
-p <- c %>% filter(GEOID %in% counties$GEOID, year == 2017) %>% mutate(gvt_acre = gvt_prog/tot_acres) %>% filter(!is.na(gvt_acre))
-
-ave(p$gvt_acre)
-median(p$gvt_acre)
-#464 counties > 10%
-
-p_sf <- merge(counties, p, by = "GEOID")
-
-# Pull quantiles
-q<- p_sf %>%
-  pull(gvt_acre) %>%
-  quantile(probs = seq(0, 1, length.out = 8), na.rm = T) %>%
-  as.vector() 
-
-quantiles <- c(0,2.5,5,7.5,10,15,25,100)
-labels <- c("$0 - $2.5",      "$2.5 - $5",    "$5 - $7.5",    "$7.5 - $10",   "$10 - $15", "$15 - $25",  "> $25")
-
-# Map ag contribution to GDP
-gvt_acre <- p_sf %>%
-  mutate(quantiles = cut(gvt_acre,
-                               breaks = quantiles,
-                               labels = labels,
-                               include.lowest = T)) %>% 
-  filter(year == 2017) %>% 
-ggplot(.) +
-  geom_sf(aes(fill = quantiles), color = "transparent") +
-  geom_sf(data = states, fill = "transparent", color = "dark gray") +
- theme_map() +
-    theme(panel.grid.major = element_line(colour = "white"), legend.position="bottom",
-          legend.key.size = unit(2, 'mm')) +
-  scale_fill_brewer(palette = "RdPu") 
-
-# Build panel plots!
-# (A.) % acres covered by crop insurance, (B.) $/ag acre in government payouts
-library(ggpubr)
-ggarrange(perc_insur, gvt_acre, labels = c("A.", "B."), ncol = 2, font.label = list(size = 8))
-ggsave("./viz/SI-Figure19.png", dpi = 400, units = "mm", width = 200, height = 80)
-```
-
-### **SI Figure ??**: 
-
-#### Net cash farm income of operations (measured in $/operation) reported by the USDA-NASS in 2017. Data: USDA NASS Quickstats
-```{r}
-nc <- c %>% filter(GEOID %in% counties$GEOID, year == 2017) %>% filter(!is.na(net_income))
-
-# STATS
-c %>% filter(year == 2017, net_income < 0) %>% arrange(net_income) # 444/3034 reporting counties
-
-#464 counties > 10%
-
-nc_sf <- merge(counties, nc, by = "GEOID")
-
-# Pull quantiles
-q<- nc_sf %>%
-  pull(net_income) %>%
-  quantile(probs = seq(0, 1, length.out = 7), na.rm = T) %>%
-  as.vector() 
-
-quantiles <- c(-60000,0,5000,1250,25000,50000,100000,2000000)
-labels <- c("< $0",      "$0 - $5k",    "$5k - $12.5k",    "$12.5k - $25k",   "$25k - $50k", "$50k - $100k",  "> $100k")
-
-# Map ag contribution to GDP
-nc_sf %>%
-  mutate(quantiles = cut(net_income,
-                               breaks = quantiles,
-                               labels = labels,
-                               include.lowest = T)) %>% 
-  filter(year == 2017) %>% 
-ggplot(.) +
-  geom_sf(aes(fill = quantiles), color = "transparent") +
-  geom_sf(data = states, fill = "transparent", color = "dark gray") +
- theme_map() +
-    theme(panel.grid.major = element_line(colour = "white"), legend.position="bottom",
-          legend.key.size = unit(2, 'mm')) +
-    scale_fill_manual(values = c("#B2182B","#F7F7F7", "#D1E5F0", "#92C5DE", "#4393C3", "#2166AC", "#053061")) +
-   ggsave("./viz/SI-Figure20.png", dpi = 400, width = 100, height = 80, units = "mm")
-
 ```
 ### **SI Figure ??**: 
 
