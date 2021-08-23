@@ -598,11 +598,12 @@ z <- z %>% group_by(year) %>%
   summarise(full_owner = sum(full_owner),
             part_owner = sum(part_owner),
             tenant = sum(tenant))
-  
+
+# proportion of acres operated by tenancy status
 # full owner
 294702960/879236316
 # part owner
-294702960/879236316
+501792110/879236316
 # tenant
 82741246/879236316
 ```
@@ -867,6 +868,8 @@ i <- p %>% filter(GEOID %in% counties$GEOID) %>% filter(YEAR == 1969 | YEAR == 2
 # county-level, in most recent year
 i <- c %>% filter(GEOID %in% counties$GEOID, year == 2017) %>% mutate(perc_insur = insur_acres/tot_acres*100) %>% filter(!is.na(perc_insur))
 
+ave(i$perc_insur)
+median(i$perc_insur)
 #464 counties > 10%
 
 i_sf <- merge(counties, i, by = "GEOID")
@@ -899,6 +902,8 @@ ggplot(.) +
 # county-level, in most recent year
 p <- c %>% filter(GEOID %in% counties$GEOID, year == 2017) %>% mutate(gvt_acre = gvt_prog/tot_acres) %>% filter(!is.na(gvt_acre))
 
+ave(p$gvt_acre)
+median(p$gvt_acre)
 #464 counties > 10%
 
 p_sf <- merge(counties, p, by = "GEOID")
@@ -973,4 +978,7 @@ ggplot(.) +
    ggsave("./viz/SI-Figure20.png", dpi = 400, width = 100, height = 80, units = "mm")
 
 ```
+### **SI Figure ??**: 
+
+#### Federal Government direct farm program payments, 2012-2021F. Data: USDA ERS (https://data.ers.usda.gov/reports.aspx?ID=17833#Pbd85abdd57c84e5b806a719dff8ee0c1_2_118iT0R0x0)
 
