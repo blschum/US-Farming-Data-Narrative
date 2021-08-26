@@ -104,11 +104,13 @@ g_sf %>%
 ggplot(.) +
   geom_sf(aes(fill = quantiles), color = "transparent") +
   geom_sf(data = states, fill = "transparent", color = "dark gray") +
- theme_map() +
-    theme(panel.grid.major = element_line(colour = "white"), legend.position="bottom",
-          legend.key.size = unit(2, 'mm')) +
-  scale_fill_manual(values=c("#fef6b5","#ffdd9a","#ffc285","#ffa679","#fa8a76","#f16d7a","#e15383"),name="") +
-  ggsave('./viz/SI-Figure1.png', dpi = 400, width = 100, height = 80, units = "mm")
+  theme_map() +
+    theme(panel.grid.major = element_line(colour = "white"), 
+          legend.position="right",
+          legend.key.size = unit(4, 'mm')) +
+  scale_fill_manual(values=c("#fef6b5","#ffdd9a","#ffc285","#ffa679","#fa8a76","#f16d7a","#e15383"),name="") 
+  
+  ggsave('./viz/SI-Figure1.png', dpi = 400, width = 110, height = 60, units = "mm", bg = "white")
 ```
 ### **SI Figure 2**: 
 
@@ -145,10 +147,12 @@ ggplot(.) +
   geom_sf(aes(fill = quantiles), color = "transparent") +
   geom_sf(data = states, fill = "transparent", color = "dark gray") +
   theme_map() +
-    theme(panel.grid.major = element_line(colour = "white"), legend.position="bottom",
-          legend.key.size = unit(2, 'mm')) +
-  scale_fill_manual(values=c("#f9ddda","#f2b9c4","#e597b9","#ce78b3","#ad5fad","#834ba0","#573b88"),name="") +
-  ggsave('./viz/SI-Figure2.png', dpi = 400, width = 100, height = 80, units = "mm")
+    theme(panel.grid.major = element_line(colour = "white"), 
+          legend.position="right",
+          legend.key.size = unit(4, 'mm')) +
+  scale_fill_manual(values=c("#f9ddda","#f2b9c4","#e597b9","#ce78b3","#ad5fad","#834ba0","#573b88"),name="") 
+
+  ggsave('./viz/SI-Figure2.png', dpi = 400, width = 110, height = 60, units = "mm", bg = "white")
 ```
 
 ### **SI Figure 3**: 
@@ -187,8 +191,9 @@ ave_age <- ggplot(data = df) +
   geom_sf(data = states, fill = "transparent", color = "dark gray") +
   scale_fill_brewer(palette = "Reds") +
   theme_map() +
-    theme(panel.grid.major = element_line(colour = "white"), legend.position="bottom",
-          legend.key.size = unit(2, 'mm'))
+    theme(panel.grid.major = element_line(colour = "white"), 
+          legend.position="right",
+          legend.key.size = unit(4, 'mm'))
 
 ############################################################
 # Change in average Age between 1997 & 2017
@@ -226,16 +231,17 @@ age_diff <- age_diff %>%
 age_diff <- ggplot() +
   geom_sf(data = age_diff, aes(fill = quantiles), color = "transparent") +
   geom_sf(data = states, fill = "transparent", color = "dark gray") +
-  theme_map() +
   scale_fill_manual(values = c("#B2182B","#F7F7F7", "#D1E5F0", "#92C5DE", "#4393C3", "#2166AC", "#053061")) +
   theme_map() +
-    theme(panel.grid.major = element_line(colour = "white"), legend.position="bottom",
-          legend.key.size = unit(2, 'mm'))
+    theme(panel.grid.major = element_line(colour = "white"), 
+          legend.position="right",
+          legend.key.size = unit(4, 'mm'))
 
 # Build panel plots!
 # (A.) % full owners, (B.) % tenants
+library(ggpubr)
 ggarrange(ave_age, age_diff, labels = c("A.", "B."), ncol = 2, font.label = list(size = 8))
-ggsave("./viz/SI-Figure3.png", dpi = 400, width = 200, height = 80, units = "mm")
+ggsave("./viz/SI-Figure3.png", dpi = 400, units = "mm", width = 220, height = 60, bg = "white")
 ```
 
 ### **SI Figure 4**: 
@@ -244,7 +250,7 @@ ggsave("./viz/SI-Figure3.png", dpi = 400, width = 200, height = 80, units = "mm"
 ```{r}
 # Experience
 
-z <- h %>%
+h %>%
   select(c(1,18:20)) %>% filter(!is.na(exp_05)) %>% mutate(perc = exp_10/(exp_05+exp_09+exp_10)) %>%
   pivot_longer(!c(1,5), names_to = "exp", values_to = "count") %>%  
 ggplot(.) +
@@ -253,7 +259,8 @@ ggplot(.) +
   labs(title = "", color = "", y = "", x = "") +
   geom_vline(xintercept=c(1997), linetype="dotted") +
   project_theme +
-  theme(legend.position="bottom") +
+  theme(legend.position="bottom") 
+
   ggsave('./viz/SI-Figure4.png', dpi = 400, width = 100, height = 80, units = "mm")
 
 # percent in 1910
@@ -299,9 +306,11 @@ ggplot(data = df) +
   geom_sf(data = states, fill = "transparent", color = "dark gray") +
   scale_fill_brewer(palette = "Blues") +
   theme_map() +
-    theme(panel.grid.major = element_line(colour = "white"), legend.position="bottom",
-          legend.key.size = unit(2, 'mm')) +
-  ggsave('./viz/SI-Figure5.png', dpi = 400, width = 100, height = 80, units = "mm")
+    theme(panel.grid.major = element_line(colour = "white"), 
+          legend.position="right",
+          legend.key.size = unit(4, 'mm'))
+
+  ggsave('./viz/SI-Figure5.png', dpi = 400, width = 110, height = 60, units = "mm", bg = "white")
   
 # STATS
 z<- c %>% select(c(1,2,9)) %>% filter(year == 2017) %>% filter(exp >= 10) # (3058/3117)
@@ -309,8 +318,36 @@ z<- c %>% select(c(1,2,9)) %>% filter(year == 2017) %>% filter(exp >= 10) # (305
 
 ### **SI Figure 6**: 
 
+American Indian or Alaska Native .......................................46,210
+Asian ...................................................................................16,978
+Black or African American ..................................................38,447
+Native Hawaiian or Other Pacific Islander ...........................2,306
+White ...................................................................................2,614,526
+More than one race reported ...............................................21,986
+
+Hispanic principal producers' reported race:::
+American Indian or Alaska Native .......................................2,077
+Asian ...................................................................................861
+Black or African American ...................................................879
+Native Hawaiian or Other Pacific Islander ...........................439
+White ...................................................................................84,434
+More than one race reported ...............................................1,654
+
+Principle Producers by race & hispanic origin (all races)
+American Indian or Alaska Native .......................................44133
+Asian ...................................................................................16117
+Black or African American ...................................................37568
+Native Hawaiian or Other Pacific Islander ...........................1867
+White ...................................................................................2530092
+More than one race reported ...............................................20332
+Hispanic (all races) ...............................................90344
+
 #### Proportional bar charts showing (A.) the area operated by principal operators by their reported race, and (B.) operations by principal operator’s race; y-axis limits at proportion = 0.08 to show distinctions between races (ie. white operators represent over 90% of all operators and farm over 90% of all operated acres). Data: USDA NASS QuickStats.
 ```{r}
+race <- c("American Indian or Alaska Native", "Asian", "Black or african American", "Native Hawaiian or Other Pacific Islander", "White", "More than one race reported", "Hispanic (all races)")
+area <- c()
+operations <- c()
+
 # Stacked bar chart, race
 # area operated
 race_area <- r %>%
@@ -384,9 +421,10 @@ female_acres <- ggplot(data = df) +
   geom_sf(mapping = aes(fill = mean_quantiles),color = "transparent",size = 0.01) +
   geom_sf(data = states, fill = "transparent", color = "dark gray") +
   scale_fill_brewer(palette = "Greens") +
- theme_map() +
-    theme(panel.grid.major = element_line(colour = "white"), legend.position="bottom",
-          legend.key.size = unit(2, 'mm'))
+  theme_map() +
+    theme(panel.grid.major = element_line(colour = "white"), 
+          legend.position="right",
+          legend.key.size = unit(4, 'mm'))
 
 ############################################################
 # Percent acres operated by folx identifying as black, hispanic, and white principal operators
@@ -440,9 +478,10 @@ hisp_acres <- ggplot(data = df) +
   geom_sf(mapping = aes(fill = mean_quantiles),color = "transparent",size = 0.01) +
   geom_sf(data = states, fill = "transparent", color = "dark gray") +
   scale_fill_brewer(palette = "Purples") +
- theme_map() +
-    theme(panel.grid.major = element_line(colour = "white"), legend.position="bottom",
-          legend.key.size = unit(2, 'mm'))
+  theme_map() +
+    theme(panel.grid.major = element_line(colour = "white"), 
+          legend.position="right",
+          legend.key.size = unit(4, 'mm'))
 
 ### Create a new variable with the quantiles
 df <- r_sf %>%
@@ -459,9 +498,10 @@ black_acres <- ggplot(data = df) +
   geom_sf(mapping = aes(fill = mean_quantiles),color = "transparent",size = 0.01) +
   geom_sf(data = states, fill = "transparent", color = "dark gray") +
   scale_fill_brewer(palette = "Oranges") +
- theme_map() +
-    theme(panel.grid.major = element_line(colour = "white"), legend.position="bottom",
-          legend.key.size = unit(2, 'mm'))
+  theme_map() +
+    theme(panel.grid.major = element_line(colour = "white"), 
+          legend.position="right",
+          legend.key.size = unit(4, 'mm'))
 
 ### Create a new variable with the quantiles
 df <- r_sf %>%
@@ -478,19 +518,20 @@ white_acres <- ggplot(data = df) +
   geom_sf(mapping = aes(fill = mean_quantiles),color = "transparent",size = 0.01) +
   geom_sf(data = states, fill = "transparent", color = "dark gray") +
   scale_fill_brewer(palette = "Reds") +
- theme_map() +
-    theme(panel.grid.major = element_line(colour = "white"), legend.position="bottom",
-          legend.key.size = unit(2, 'mm'))
+  theme_map() +
+    theme(panel.grid.major = element_line(colour = "white"), 
+          legend.position="right",
+          legend.key.size = unit(4, 'mm'))
 
 # Build panel plots!
 # (A.) Black, (B.) Hispanic, (C.) white and (D.) female operated acreage
 library(ggpubr)
 ggarrange(black_acres, hisp_acres, white_acres, female_acres, labels = c("A.", "B.", "C.", "D."), ncol = 2, nrow = 2, font.label = list(size = 8))
-ggsave("./viz/SI-Figure7.png", dpi = 400, width = 180, height = 120, units = "mm")
+ggsave("./viz/SI-Figure7.png", dpi = 400, width = 220, height = 120, units = "mm", bg = "white")
 ```
 ### **SI Figure 8**: 
 
-#### (A.) Percent agricultural acres operated by POC (i.e., Black, American Indian or Native Alaskan, Multi-racial, Hispanic, Asian, Native Hawaiian or other Pacific Islander) principal operators in 2017, and (B.) Percent of all US farm operations operated by POC principal operators in 2017. Data: USDA NASS QuickStats
+#### (A.) Percent agricultural acres operated by POC and Hispanic-identifying  (i.e., Black, American Indian or Native Alaskan, Multi-racial, Asian, Native Hawaiian or other Pacific Islander) principal operators in 2017, and (B.) Percent of all US farm operations operated by POC and Hispanic-identifying principal operators in 2017. Data: USDA NASS QuickStats
 ```{r}
 ############################################################
 # Percent acres operated by POC principal operators
@@ -523,9 +564,10 @@ POC_acres <- ggplot(data = df) +
   geom_sf(mapping = aes(fill = mean_quantiles),color = "transparent",size = 0.01) +
   geom_sf(data = states, fill = "transparent", color = "dark gray") +
   scale_fill_brewer(palette = "GnBu") +
- theme_map() +
-    theme(panel.grid.major = element_line(colour = "white"), legend.position="bottom",
-          legend.key.size = unit(2, 'mm'))
+  theme_map() +
+    theme(panel.grid.major = element_line(colour = "white"), 
+          legend.position="right",
+          legend.key.size = unit(4, 'mm'))
 
 ############################################################
 # Percent operations operated by POC principle operators
@@ -558,22 +600,23 @@ POC_operations <- ggplot(data = df) +
   geom_sf(mapping = aes(fill = mean_quantiles),color = "transparent",size = 0.01) +
   geom_sf(data = states, fill = "transparent", color = "dark gray") +
   scale_fill_brewer(palette = "YlGn") +
- theme_map() +
-    theme(panel.grid.major = element_line(colour = "white"), legend.position="bottom",
-          legend.key.size = unit(2, 'mm'))
+  theme_map() +
+    theme(panel.grid.major = element_line(colour = "white"), 
+          legend.position="right",
+          legend.key.size = unit(4, 'mm'))
 
 # Build panel plots!
 # (A.) Percent POC operated acres, (B.) Percent POC-run operations
 library(ggpubr)
 ggarrange(POC_acres, POC_operations, labels = c("A.", "B."), ncol = 2, font.label = list(size = 8))
-ggsave("./viz/SI-Figure8.png", dpi = 400, width = 200, height = 80, units = "mm")
+ggsave("./viz/SI-Figure8.png", dpi = 400, units = "mm", width = 220, height = 60, bg = "white")
 ```
 
 ### **SI Figure 9**: 
 
 #### Proportion of acres operated by tenancy status. Data: USDA NASS QuickStats.
 ```{r}
-z <- c %>%
+c %>%
   select(c(1:2,18:20)) %>% 
   pivot_longer(!c(1,2), names_to = "tenancy", values_to = "acres") %>% 
 ggplot(.) +
@@ -582,7 +625,7 @@ ggplot(.) +
   labs(title = "", color = "", y = "", x = "") +
   project_theme +
   theme(legend.position="bottom") +
-  scale_x_continuous(breaks = c(1997, 2002, 2007, 2012, 2017)) +
+  scale_x_continuous(breaks = c(1997, 2002, 2007, 2012, 2017)) 
   ggsave("./viz/SI-Figure9.png", dpi = 400, width = 100, height = 80, units = "mm")
 
 # STATS
@@ -643,14 +686,16 @@ df <- size %>%
 
 ### PLOT
 # Mean acres
-mean_acres <- ggplot(data = df) +
+ggplot(data = df) +
   geom_sf(mapping = aes(fill = mean_quantiles),color = "transparent",size = 0.01) +
   geom_sf(data = states, fill = "transparent", color = "dark gray") +
   scale_fill_brewer(palette = "YlGn") +
- theme_map() +
-    theme(panel.grid.major = element_line(colour = "white"), legend.position="bottom",
-          legend.key.size = unit(2, 'mm')) +
-  ggsave('./viz/SI-Figure10.png', dpi = 400, width = 100, height = 80, units = "mm")
+  theme_map() +
+    theme(panel.grid.major = element_line(colour = "white"), 
+          legend.position="right",
+          legend.key.size = unit(4, 'mm'))
+
+  ggsave('./viz/SI-Figure10.png', dpi = 400, width = 110, height = 60, units = "mm", bg = "white")
 
 ```
 
@@ -659,11 +704,12 @@ mean_acres <- ggplot(data = df) +
 #### Share of gross farm cash receipts spent on all agricultural inputs. During the height of the Farm Crisis of the 1980s, for instance, US farmers spent over 90% of their gross earnings (ie. earnings before subtracting production expenses) on inputs to agriculture. 
 ```{r}
 bea$YEAR<-as.numeric(bea$YEAR) 
-t<- bea %>% select(c(1:3,11,23)) %>% filter(GeoName == "United States") %>% mutate(prod_exp = (prod_exp)/cash_income*100) %>% 
+bea %>% select(c(1:3,11,23)) %>% filter(GeoName == "United States") %>% mutate(prod_exp = (prod_exp)/cash_income*100) %>% 
   ggplot(.) +
   geom_line(aes(x = YEAR, y = prod_exp), color = "#88CCEE", size = 1.5) +
   project_theme +
-  labs(title = "", color = "", y = "Share of Earnings (%) Spent on Inputs", x = "") +
+  labs(title = "", color = "", y = "Share of Earnings (%) Spent on Inputs", x = "") 
+
   ggsave("./viz/SI-Figure11.png", dpi = 400, width = 100, height = 80, units = "mm")
 ```
 
@@ -695,9 +741,11 @@ ggplot(.) +
   geom_sf(data = states, fill = "transparent", color = "dark gray") +
   scale_fill_manual(values=c("#053061", "#4393C3", "#92C5DE",  "#FDDBC7", "#D6604D", "#B2182B", "#67001F"),name="") +
   theme_map() +
-    theme(panel.grid.major = element_line(colour = "white"), legend.position="bottom",
-          legend.key.size = unit(2, 'mm')) +
-  ggsave('./viz/SI-Figure12.png', dpi = 400, width = 100, height = 80, units = "mm")
+    theme(panel.grid.major = element_line(colour = "white"), 
+          legend.position="right",
+          legend.key.size = unit(4, 'mm'))
+
+  ggsave('./viz/SI-Figure12.png', dpi = 400, width = 110, height = 60, units = "mm", bg = "white")
 ```
 
 ### **SI Figure 15**: 
@@ -722,7 +770,7 @@ debt <- debt %>% mutate(REAL_GDP = Amount / (ChainType_GDP_Deflator/100))
 debt_tidy <- debt %>% pivot_wider(names_from = variable, values_from = Amount)
 
 # VIZ
-z<-debt %>%
+debt %>%
   filter(variable %in% c("Real estate_Commercial banks","Real estate_CCC storage and drying loans","Real estate_Farm Credit System","Real estate_Farm Service Agency","Real estate_Farmer Mac","Real estate_Individuals and others","Real estate_Life insurance companies"),
          Year >= 1960) %>%
 ggplot(.) +
@@ -734,13 +782,14 @@ ggplot(.) +
   labs(title = "", y = "Real US Dollars") +
   scale_y_continuous(breaks=c(100000000000,200000000000,300000000000),
         labels=c("$100B","$200B","$300B")) +
-  theme(legend.position="bottom") +
+  theme(legend.position="bottom") 
+
   ggsave("./viz/SI-Figure15.png", dpi = 400, width = 140, height = 80, units = "mm")
 ```
 
 ### **SI Figure 16**: 
 
-#### Agricultural   non-real estate debt from 1969 to 2019, adjusted for inflation using the chain-type GDP deflator provided by the USDA ERS. Data: USDA ERS.
+#### Agricultural non-real estate debt from 1969 to 2019, adjusted for inflation using the chain-type GDP deflator provided by the USDA ERS. Data: USDA ERS.
 ```{r}
 debt %>%
   filter(variable %in% c("Non-real estate_Farm Credit System","Non-real estate_Farm Service Agency","Non-real estate_Individuals and others","Non-real estate_Commerical banks"),
@@ -753,113 +802,7 @@ ggplot(.) +
   labs(title = "", y = "Real US Dollars") +
   scale_y_continuous(breaks=c(50000000000,100000000000,150000000000,200000000000),
         labels=c("$50B","$100B","$150B","$200B")) +
-  theme(legend.position="bottom") + 
+  theme(legend.position="bottom") 
+
   ggsave("./viz/SI-Figure16.png", dpi = 400, width = 140, height = 80, units = "mm")
 ```
-
-### **SI Figure 17**: 
-
-#### Realized net income (total cash receipts and other income less total production expenses.), adjusted to 2019 dollars. Data: US BEA.
-```{r}
-#inflation adjust to 2019 dollars 
-options(scipen = 100)
-library(blscrapeR) 
-
-df<-inflation_adjust(2019) #this pulls a table of adjustment values (adjustment to 2019 $) 
-
-df$year<-as.numeric(df$year) 
-
-dat<-left_join(bea,df[,c(1,3)], by=c("YEAR"="year")) #this basically joins the inflation adjustment values to the dataset you want to adjust by joining by year of the data (so the current year data in the BEA dataset) in this case I am inflation adjusting the per capita income levels (pci) 
-
-dat$net_income_adj<-dat$net_income/dat$adj_value #this performs the actual dollar value adjustment
-
-# Net adjusted income over time
-n <- dat %>% filter(GeoName == "United States") %>% select(c(2,24,69))
-
-n %>% 
-ggplot(.) +
-  geom_line(aes(x = YEAR, y = net_income_adj*1000/1000000000),color = "#009392", size = 1.5) +
-  project_theme +
-  labs(title = "", color = "", y = "Realized Net Income (in billions of USD$)", x = "") +
-   ggsave("./viz/SI-Figure17.png", dpi = 400, width = 100, height = 80, units = "mm")
-```
-
-### **SI Figure 18**: 
-
-#### Average farm proprietors’ income in (A.) 1969, adjusted to 2019 dollars, and (B.) 2019. Counties in which average farm proprietors’ income is negative (red) went into debt in a given year. For instance, in Lawrence, AL, farm proprietors made $29k on average in 1969, but lost $16k on average in 2019. Data: US BEA. 
-```{r}
-p <- dat %>% select(c(1:3,farmprop_income, farmprop_employ, nonfarmprop_income, nonfarmprop_employ,adj_value))
-
-p$farmprop_income_adj<-p$farmprop_income/p$adj_value
-p$nonfarmprop_income_adj<-p$nonfarmprop_income/p$adj_value
-
-p <- p %>% 
-  mutate(ave_farm = farmprop_income_adj*1000/farmprop_employ,
-         ave_nonfarm = nonfarmprop_income_adj*1000/nonfarmprop_employ)
-
-# county-level data; average farm proprietors income, 2019
-i <- p %>% filter(GEOID %in% counties$GEOID, YEAR == 2019) %>% select(c(1:3,11:12)) %>% filter(!is.na(ave_farm)) 
-i_sf <- merge(counties, i, by = "GEOID")
-# Pull quantiles
-q<- i_sf %>%
-  pull(ave_farm) %>%
-  quantile(probs = seq(0, 1, length.out = 7), na.rm = T) %>%
-  as.vector() 
-
-quantiles <- c(-2150000,-5500,0,5500,15000,30000,60000,3100000)
-labels <- c("< -$5.5k",  "-$5.5k - $0",    "$0 - $5.5k",   "$5.5k - $15k",  "$15k - $30k", "$30k - $60k", "> $60k")
-
-# Map 
-farm_19 <- i_sf %>%
-  mutate(quantiles = cut(ave_farm,
-                               breaks = quantiles,
-                               labels = labels,
-                               include.lowest = T)) %>% 
-ggplot(.) +
-  geom_sf(aes(fill = quantiles), color = "transparent") +
-  geom_sf(data = states, fill = "transparent", color = "dark gray") +
-  scale_fill_manual(values = c("#B2182B", "#FDDBC7", "#D1E5F0", "#92C5DE", "#4393C3", "#2166AC", "#053061"),name="") +
-   theme_map() +
-    theme(panel.grid.major = element_line(colour = "white"), legend.position="bottom",
-          legend.key.size = unit(2, 'mm'))
-
-# county-level data; average farm proprietors income, 1969
-i <- p %>% filter(GEOID %in% counties$GEOID, YEAR == 1969) %>% select(c(1:3,11:12)) %>% filter(!is.na(ave_farm), ave_farm != 0) %>% filter(GEOID != 	
-"08097")
-i_sf <- merge(counties, i, by = "GEOID")
-# Pull quantiles
-q<- i_sf %>%
-  pull(ave_farm) %>%
-  quantile(probs = seq(0, 1, length.out = 7), na.rm = T) %>%
-  as.vector() 
-
-quantiles <- c(-70000,0,10000,20000,30000,40000,50000,600000)
-labels <- c("< $0",  "$0 - $10k",    "$10k - $20k",   "$20k - $30k",  "$30k - $40k", "$40k - $50k", "> $50k")
-
-# Map net income
-farm_69 <- i_sf %>%
-  mutate(quantiles = cut(ave_farm,
-                               breaks = quantiles,
-                               labels = labels,
-                               include.lowest = T)) %>% 
-ggplot(.) +
-  geom_sf(aes(fill = quantiles), color = "transparent") +
-  geom_sf(data = states, fill = "transparent", color = "dark gray") +
-  scale_fill_manual(values = c("#B2182B", "#ebf8ff", "#D1E5F0", "#92C5DE", "#4393C3", "#2166AC", "#053061"),name="") +
- theme_map() +
-    theme(panel.grid.major = element_line(colour = "white"), legend.position="bottom",
-          legend.key.size = unit(2, 'mm')) 
-
-# Build panel plots!
-# (A.) income 1969, (B.) income 2019
-library(ggpubr)
-ggarrange(farm_69, farm_19, labels = c("A.", "B."), ncol = 2, font.label = list(size = 8))
-ggsave("./viz/SI-Figure18.png", dpi = 400, width = 200, height = 80, units = "mm")
-
-# STATS
-i <- p %>% filter(GEOID %in% counties$GEOID) %>% filter(YEAR == 1969 | YEAR == 2019)
-```
-### **SI Figure ??**: 
-
-#### Federal Government direct farm program payments, 2012-2021F. Data: USDA ERS (https://data.ers.usda.gov/reports.aspx?ID=17833#Pbd85abdd57c84e5b806a719dff8ee0c1_2_118iT0R0x0)
-
