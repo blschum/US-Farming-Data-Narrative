@@ -344,45 +344,54 @@ Hispanic (all races) ...............................................90344
 
 #### Proportional bar charts showing (A.) the area operated by principal operators by their reported race, and (B.) operations by principal operator’s race; y-axis limits at proportion = 0.08 to show distinctions between races (ie. white operators represent over 90% of all operators and farm over 90% of all operated acres). Data: USDA NASS QuickStats.
 ```{r}
-race <- c("American Indian or Alaska Native", "Asian", "Black or african American", "Native Hawaiian or Other Pacific Islander", "White", "More than one race reported", "Hispanic (all races)")
-area <- c()
-operations <- c()
+re <- read.csv("./data/race-ethnicity.csv")
+
+re$RACE <- factor(re$RACE, levels = c("White", "More", "Hawaiian", "Black", "Asian", "American Indian", "Hispanic"))
 
 # Stacked bar chart, race
 # area operated
-race_area <- r %>%
-  filter(OPERATOR == "OPERATORS, PRINCIPAL", TYPE == "AREA OPERATED") %>% 
-  select(c(1,4,7:13)) %>% 
-  pivot_longer(!c(1,2), names_to = "race", values_to = "acres") %>% 
+race_area <- re %>%
+  filter(TYPE == "Area Operated") %>% 
 ggplot(.) +
-  geom_bar(aes(fill = forcats::fct_rev(race), y = acres, x = YEAR), position = "fill", stat = "identity") +
-  scale_fill_manual(name = "", labels = c("White", "Native Hawaiian or Other Pacific Islander", "American Indian or Alaskan Native", "Multiple Races", "Hispanic", "Black", "Asian"), values=c("#332288","#117733","#44AA99","#88CCEE","#DDCC77","#CC6677","#AA4499")) +
+  geom_bar(aes(fill = RACE, y = VALUE, x = YEAR), position = "fill", stat = "identity") +
+  scale_fill_manual(name = "", labels = c("White", "Multiple Races", "Native Hawaiian or Other Pacific Islander", "Black", "Asian", "American Indian or Alaskan Native", "Hispanic"), values=c("#332288","#117733","#CC6677", "#44AA99","#88CCEE","#DDCC77","#882255")) +
   labs(title = "", color = "", y = "Proportion of Area Operated", x = "") +
-  #geom_vline(xintercept=c(1997), linetype="dotted") +
   project_theme +
   theme(legend.position="bottom") +
-  coord_cartesian(ylim = c(0,0.085)) +
+  coord_cartesian(ylim = c(0,0.080)) +
   scale_x_continuous(breaks = c(2007, 2012, 2017)) 
 
 # operations
-race_operations <- r %>%
-  filter(OPERATOR == "OPERATORS, PRINCIPAL", TYPE == "OPERATIONS") %>% 
-  select(c(1,4,7:13)) %>% 
-  pivot_longer(!c(1,2), names_to = "race", values_to = "acres") %>% 
+race_operations <- re %>%
+  filter(TYPE == "Operations") %>% 
 ggplot(.) +
-  geom_bar(aes(fill = forcats::fct_rev(race), y = acres, x = YEAR), position = "fill", stat = "identity") +
-  scale_fill_manual(name = "", labels = c("White", "Native Hawaiian or Other Pacific Islander", "American Indian or Alaskan Native", "Multiple Races", "Hispanic", "Black", "Asian"), values=c("#332288","#117733","#44AA99","#88CCEE","#DDCC77","#CC6677","#AA4499")) +
+  geom_bar(aes(fill = RACE, y = VALUE, x = YEAR), position = "fill", stat = "identity") +
+  scale_fill_manual(name = "", labels = c("White", "Multiple Races", "Native Hawaiian or Other Pacific Islander", "Black", "Asian", "American Indian or Alaskan Native", "Hispanic"), values=c("#332288","#117733","#CC6677", "#44AA99","#88CCEE","#DDCC77","#882255")) +
   labs(title = "", color = "", y = "Proportion of Operations", x = "") +
   #geom_vline(xintercept=c(1997), linetype="dotted") +
   project_theme +
   theme(legend.position="bottom") +
-  coord_cartesian(ylim = c(0,0.085)) +
+  coord_cartesian(ylim = c(0,0.080)) +
   scale_x_continuous(breaks = c(2007, 2012, 2017)) 
 
+# operators
+race_operators <- re %>%
+  filter(TYPE == "Operators") %>% 
+ggplot(.) +
+  geom_bar(aes(fill = RACE, y = VALUE, x = YEAR), position = "fill", stat = "identity") +
+  scale_fill_manual(name = "", labels = c("White", "Multiple Races", "Native Hawaiian or Other Pacific Islander", "Black", "Asian", "American Indian or Alaskan Native", "Hispanic"), values=c("#332288","#117733","#CC6677", "#44AA99","#88CCEE","#DDCC77","#882255")) +
+  labs(title = "", color = "", y = "Proportion of Operators", x = "") +
+  #geom_vline(xintercept=c(1997), linetype="dotted") +
+  project_theme +
+  theme(legend.position="bottom") +
+  coord_cartesian(ylim = c(0,0.080)) +
+  scale_x_continuous(breaks = c(2007, 2012, 2017)) 
+
+
 # Build panel plots!
-ggarrange(race_area, race_operations, labels = c("A.", "B."), ncol = 2, nrow = 1, common.legend = TRUE, legend = "bottom",
+ggarrange(race_operators, race_area, race_operations, labels = c("A.", "B.", "C."), ncol = 1, nrow = 3, common.legend = TRUE, legend = "bottom",
           font.label = list(size = 8))
-ggsave("./viz/SI-Figure6.png", dpi = 400, width = 200, height = 80, units = "mm")
+ggsave("./viz/SI-Figure6.png", dpi = 400, width = 150, height = 220, units = "mm", bg = "white")
 ```
 
 ### **SI Figure 7**: 

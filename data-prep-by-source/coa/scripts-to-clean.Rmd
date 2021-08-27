@@ -1,0 +1,104 @@
+---
+title: "data-inventory"
+author: "Britta Schumacher"
+date: "April 26, 2021"
+output: 
+  html_document:
+    theme: flatly
+    toc: yes
+    toc_float: true
+    code_folding: hide
+---
+
+```{r}
+# load packages
+library(tidyverse)
+# load data
+BSDS <- readRDS("./data/BSDS_att_raw.RDS")
+coa <- readRDS("./data/NASS_census.RDS")
+FIPS <- read.csv("./data/stateFIPS.csv")
+frr <- readRDS("./data/FRR.RDS")
+frr <- as.data.frame(frr)
+counties <- readRDS("./data/coterm_cty_sf.RDS")
+
+# load functions
+source("./func/build-GEOID.R")
+sex <- build("./data/acres-op-by-sex.csv")
+sex_operators <- build("./data/operators-by-sex.csv")
+
+# select data from for analyses
+a <- BSDS %>% select(c(1:4,26,34,26,37,38,42,14,25,23,17,29,33)) %>% mutate(percf_acr = round(female/(male+female)*100,2)) %>% rename(fem_acr = female, male_acr = male)
+
+frr <- frr %>% select(1,11)
+
+##############################################################################
+# build % female-run operations
+##############################################################################
+female_op <- coa %>% filter(CLASS_DESC == "MALE" | CLASS_DESC == "FEMALE") %>% filter(DOMAIN_DESC == "TOTAL") %>% filter(AGG_LEVEL_DESC == "COUNTY") %>%  select(GEOID, YEAR, CLASS_DESC, COMMODITY_DESC, STATISTICCAT_DESC, UNIT_DESC, SHORT_DESC, VALUE) %>% filter(SHORT_DESC != "OPERATORS, PRINCIPAL, FEMALE - AREA OPERATED, MEASURED IN ACRES / OPERATION")
+
+levels(female_op$STATISTICCAT_DESC)[levels(female_op$STATISTICCAT_DESC)=="PRODUCERS"] <- "OPERATORS"
+levels(female_op$COMMODITY_DESC)[levels(female_op$COMMODITY_DESC)=="PRODUCERS"] <- "OPERATORS"
+levels(female_op$COMMODITY_DESC)[levels(female_op$COMMODITY_DESC)=="PRODUCERS, PRINCIPAL"] <- "OPERATORS, PRINCIPAL"
+
+female_op <- female_op %>% select(GEOID, YEAR, CLASS_DESC, COMMODITY_DESC, STATISTICCAT_DESC, VALUE) %>% filter(STATISTICCAT_DESC == "OPERATIONS" | STATISTICCAT_DESC == "AREA OPERATED") %>% filter(COMMODITY_DESC == "OPERATORS, PRINCIPAL")
+
+female_op <- female_op %>% pivot_wider(names_from = STATISTICCAT_DESC, values_from = VALUE) %>% select(1:3,6) %>% pivot_wider(names_from = CLASS_DESC, values_from = OPERATIONS) %>% rename(fem_op = FEMALE, male_op = MALE) %>% mutate(percf_op = round(fem_op/(male_op+fem_op)*100,2))
+
+# build 1997 data from acres-op-by-sex.csv
+female_op_97 <- sex %>% pivot_wider(names_from = Data.Item, values_from = Value) %>% rename(fem_op = "OPERATORS, PRINCIPAL, FEMALE - NUMBER OF OPERATIONS", male_op = "OPERATORS, PRINCIPAL, MALE - NUMBER OF OPERATIONS") %>% mutate(fem_op = as.numeric(as.character(fem_op)), male_op = as.numeric(as.character(male_op))) %>% mutate(percf_op = round(fem_op/(male_op+fem_op)*100,2)) %>% rename(YEAR = Year) %>% select(GEOID, YEAR, fem_op, male_op, percf_op)
+
+# merge 1997 data with female_op
+female_op <- rbind(female_op, female_op_97)
+
+female_op <- female_op %>% rename(year = YEAR)
+
+# merge female_op with a dataframe
+a <- merge(a,female_op, by = c("GEOID","year"))
+a <- a %>% select(1:11,16:19,12:15)
+a <- merge(frr, a, by = "GEOID")
+
+# Build operators by sex
+fem_operators <- sex_operators %>% pivot_wider(names_from = Data.Item, values_from = Value) %>% rename(fem_operators = "PRODUCERS, PRINCIPAL, FEMALE - NUMBER OF PRODUCERS", male_operators = "PRODUCERS, PRINCIPAL, MALE - NUMBER OF PRODUCERS") %>% mutate(fem_operators = as.numeric(as.character(fem_operators)), male_operators = as.numeric(as.character(male_operators))) %>% mutate(percf_operators = round(fem_operators/(male_operators+fem_operators)*100,2)) %>% rename(year = Year) %>% select(GEOID, year, fem_operators, male_operators, percf_operators)
+
+fem_operators$year <- as.numeric(fem_operators$year)
+
+a <- merge(a, fem_operators, by = c("GEOID","year"), all = T)
+
+# add net income in $/operation, government payouts,  insured acres, and net cash farm income
+
+b <- BSDS %>% select(c(1,3,39,18,40))
+
+a <- merge(a, b, by = c("GEOID","year"), all = T)
+
+# add net cash farm income
+income <- coa %>% 
+  filter(SHORT_DESC == "INCOME, NET CASH FARM, OF OPERATIONS - NET INCOME, MEASURED IN $ / OPERATION") %>% filter(DOMAIN_DESC == "TOTAL") %>% 
+  select(YEAR, VALUE, GEOID) %>% 
+  rename("net_income" = "VALUE") %>% 
+  rename("year" = "YEAR")
+
+a <- merge(a, income, by = c("GEOID","year"), all = T)
+
+# Save COA data
+saveRDS(a, "./out/contemp-coa.RDS")
+
+##############################################################################
+# Build % acres operated by POC principal operators; pretty sure there isn't data for 1997!
+##############################################################################
+r <- coa %>% filter(CLASS_DESC == "AMERICAN INDIAN OR ALASKA NATIVE" | CLASS_DESC == "BLACK OR AFRICAN AMERICAN" | CLASS_DESC == "MULTI-RACE" | CLASS_DESC == "WHITE" | CLASS_DESC == "HISPANIC" | CLASS_DESC == "ASIAN" | CLASS_DESC == "NATIVE HAWAIIAN OR OTHER PACIFIC ISLANDER") %>% filter(AGG_LEVEL_DESC == "COUNTY") %>% filter(DOMAIN_DESC == "TOTAL") %>% select(GEOID, STATE_ALPHA, YEAR, CLASS_DESC, COMMODITY_DESC, STATISTICCAT_DESC, UNIT_DESC, SHORT_DESC, VALUE) 
+
+levels(r$STATISTICCAT_DESC)[levels(r$STATISTICCAT_DESC)=="PRODUCERS"] <- "OPERATORS"
+levels(r$COMMODITY_DESC)[levels(r$COMMODITY_DESC)=="PRODUCERS"] <- "OPERATORS"
+levels(r$COMMODITY_DESC)[levels(r$COMMODITY_DESC)=="PRODUCERS, PRINCIPAL"] <- "OPERATORS, PRINCIPAL"
+
+rw <- r %>% select(GEOID, STATE_ALPHA, YEAR, CLASS_DESC, SHORT_DESC, COMMODITY_DESC, STATISTICCAT_DESC, VALUE) %>% filter(STATISTICCAT_DESC == "OPERATORS" | STATISTICCAT_DESC == "OPERATIONS" | STATISTICCAT_DESC == "AREA OPERATED") %>% filter(COMMODITY_DESC == "OPERATORS" | COMMODITY_DESC == "OPERATORS, PRINCIPAL") %>% filter(SHORT_DESC != "OPERATORS, HISPANIC, YEARS ON PRESENT OPERATION, GE 10 YEARS - NUMBER OF OPERATORS" & SHORT_DESC != "OPERATORS, HISPANIC, YEARS ON PRESENT OPERATION, 3 TO 4 YEARS - NUMBER OF OPERATORS" & SHORT_DESC != "OPERATORS, HISPANIC, YEARS ON PRESENT OPERATION, 5 TO 9 YEARS - NUMBER OF OPERATORS" & SHORT_DESC != "OPERATORS, HISPANIC, YEARS ON PRESENT OPERATION, LT 3 YEARS - NUMBER OF OPERATORS" & SHORT_DESC != "OPERATORS, HISPANIC, PRIMARY OCCUPATION, FARMING - NUMBER OF OPERATORS" & SHORT_DESC != "OPERATORS, HISPANIC, PRIMARY OCCUPATION, (EXCL FARMING) - NUMBER OF OPERATORS" & SHORT_DESC != "OPERATORS, HISPANIC, DAYS WORKED OFF OPERATION, 0 DAYS - NUMBER OF OPERATORS" & SHORT_DESC != "OPERATORS, HISPANIC, DAYS WORKED OFF OPERATION, GE 1 DAYS - NUMBER OF OPERATORS" & SHORT_DESC != "OPERATORS, HISPANIC - AREA OPERATED, MEASURED IN ACRES / OPERATION" & SHORT_DESC != "OPERATORS, HISPANIC - AGE, AVG, MEASURED IN YEARS") %>% select(!SHORT_DESC)
+
+race <- rw %>% pivot_wider(names_from = CLASS_DESC, values_from = VALUE)
+
+colnames(race) <- c("GEOID", "STATE", "YEAR", "OPERATOR", "TYPE", "NATIVE_AMER", "BLACK", "MULTI", "WHITE", "HISPANIC", "ASIAN", "PACIFIC_ISL")
+race[is.na(race)] <- 0
+race <- merge(frr, race, by = "GEOID")
+
+# save clean .RDS
+saveRDS(race, "./out/coa-race.RDS")
+```
