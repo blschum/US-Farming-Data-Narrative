@@ -178,13 +178,13 @@ sex <- h %>%
   pivot_longer(-c(year, perc), names_to = "variable", values_to = "count") %>% 
 ggplot(.) +
   geom_bar(aes(fill=variable, y=count/100000, x=year), position="dodge", stat="identity") +
-  geom_line(aes(x = year, y = perc, color = "% Female Primary Operators"), stat = "identity", size = 1.5) +
+  geom_line(aes(x = year, y = perc, color = "% Female Operators"), stat = "identity", size = 1.5) +
   project_theme +
   scale_fill_manual(name="",labels = c("Female", "Male"), values = c("#44AA99", "#332288")) +
-  scale_color_manual(name="",values = c("% Female Primary Operators" = "#DDCC77")) +
+  scale_color_manual(name="",values = c("% Female Operators" = "#DDCC77")) +
   geom_vline(xintercept=c(1997), linetype="dotted") +
   theme(legend.position="bottom") +
-  labs(title = "", y = "Number of Primary Operators", x = "") 
+  labs(title = "", y = "Number of Operators", x = "") 
 
 ggarrange(age, race, sex, nrow = 3, labels = c('A.', 'B.', 'C.'),
           font.label = list(size = 8))

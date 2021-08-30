@@ -392,6 +392,16 @@ ggplot(.) +
 ggarrange(race_operators, race_area, race_operations, labels = c("A.", "B.", "C."), ncol = 1, nrow = 3, common.legend = TRUE, legend = "bottom",
           font.label = list(size = 8))
 ggsave("./viz/SI-Figure6.png", dpi = 400, width = 150, height = 220, units = "mm", bg = "white")
+
+# race statistics
+sum <- re %>% filter(YEAR == 2017) %>% group_by(TYPE) %>% summarise(total = sum(VALUE))
+
+# nonwhite operations by race of principal producer
+# ((total operations - white operations)/total operations*100)
+((2063190-1955737)/2063190*100)
+# nonwhite operated acres by race of principal producer
+# ((total acreage - white acreage)/total acreage*100)
+((907426277-843497615)/907426277*100)
 ```
 
 ### **SI Figure 7**: 
