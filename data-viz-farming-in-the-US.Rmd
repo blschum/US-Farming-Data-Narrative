@@ -143,7 +143,6 @@ h <- read.csv("./data/historical-coa.csv")
 project_theme <- theme_bw() +
   theme(text = element_text(size=10))
 
-# Average Operator Age
 age <- h %>% 
   ggplot(.) +
   geom_line(aes(x = year, y = ave_age), color = "#88CCEE", size = 1.5) +
@@ -155,16 +154,27 @@ age <- h %>%
 # Farm operators by race through time
 race <- h %>% filter(!is.na(black)) %>% 
   ggplot(.) +
-  geom_line(aes(x = year, y = white/1000000, color = "White operators (in 1Ms)"), size = 1, linetype = "longdash") +
+  geom_line(aes(x = year, y = white/1000000, color = "White operators (in 1Ms)"), size = 1, linetype = "dotted") +
   geom_line(aes(x = year, y = black/100000, color = "Black operators (in 100ks)"), size = 1, linetype = "longdash") +
   geom_line(aes(x = year, y = other/100000, color = "All Other Races operators (in 100ks)"), size = 1, linetype = "longdash") +
   project_theme +
-  labs(title = "", color = "", y = "Number of Operators", x = "") +
   scale_color_manual(name="",values = c("White operators (in 1Ms)" = "#88CCEE", "Black operators (in 100ks)" = "#CC6677", "All Other Races operators (in 100ks)" = "#DDCC77")) +
-  #coord_cartesian(xlim = c(1900,2017)) +
   scale_x_continuous(breaks=seq(1900,2020,20)) +
   geom_vline(xintercept=c(1997), linetype="dotted") +
     theme(legend.position="bottom") 
+
+race2 <- h %>% filter(!is.na(black)) %>% 
+  ggplot(.) +
+  geom_line(aes(x = year, y = white/1000000, color = "White operators (in 1Ms)"), size = 1, linetype = "dotted") +
+  geom_line(aes(x = year, y = black/100000, color = "Black operators (in 100ks)"), size = 1, linetype = "longdash") +
+  geom_line(aes(x = year, y = other/100000, color = "All Other Races operators (in 100ks)"), size = 1, linetype = "longdash") +
+  project_theme +
+  annotate("text", x = c(1955,1980,1920), y = c(7.5,3.5,1.5), label = c("Black operators (in 100ks)", "White operators (in 1Ms)", "All Other Races Operators\n(in 100ks)"), size = 2.5) + # comment out if decide otherwise
+  labs(title = "", color = "", y = "Number of Operators", x = "") + # comment out if decide otherwise
+  scale_color_manual(name="",values = c("White operators (in 1Ms)" = "#88CCEE", "Black operators (in 100ks)" = "#CC6677", "All Other Races operators (in 100ks)" = "#DDCC77")) +
+  scale_x_continuous(breaks=seq(1900,2020,20)) +
+  geom_vline(xintercept=c(1997), linetype="dotted") +
+    theme(legend.position="none") 
 
 # STATS
 # Percent black in 1900
@@ -184,11 +194,13 @@ ggplot(.) +
   scale_color_manual(name="",values = c("% Female Operators" = "#DDCC77")) +
   geom_vline(xintercept=c(1997), linetype="dotted") +
   theme(legend.position="bottom") +
-  labs(title = "", y = "Number of Operators", x = "") 
+  labs(title = "", y = "Number of Operators \n(in hundreds of thousands)", x = "") 
 
-ggarrange(age, race, sex, nrow = 3, labels = c('A.', 'B.', 'C.'),
+ggarrange(age, race2, sex, nrow = 3, labels = c('A.', 'B.', 'C.'),
           font.label = list(size = 8))
-ggsave("./viz/Figure3.png", dpi = 400, width = 150, height = 240, units = "mm")
+ggsave("./viz/Figure3-1.png", dpi = 400, width = 150, height = 240, units = "mm")
+# Average Operator Age
+
 
 # STATS
 # percent female
@@ -536,20 +548,17 @@ t$race <- as.factor(t$race)
 t$type <- as.factor(t$type)
 t$year <- as.factor(t$year)
 
-t %>% filter(race == "POC")
-
 t$alpharace <- as.factor(ifelse(t$race == "White", 0.4, 1))
 
 ggplot(t, aes(x = race, y=count , fill=type, alpha = factor(alpharace))) +
   geom_bar(position = "fill", stat = "identity") +
       scale_fill_manual(name = "", labels = c("Full Owner", "Part Owner", "Tenant"), values=c("#44AA99","#88CCEE","#DDCC77"))  +
       theme(strip.background = element_rect(color="transparent",fill = "transparent")) +
-  theme(legend.position="bottom") +
   theme_minimal() +
   theme(text = element_text(size=10)) +
   scale_alpha_manual(values = c("0.4"=0.4, "1"=1), guide='none') +
   scale_x_discrete(labels = NULL, breaks = NULL) + labs(x = "") +
-  facet_wrap(~year,nrow=1) +
+  facet_wrap(~year,nrow=1, strip.position = "bottom") +
     labs(title = "", color = "", y = "", x = "") 
 
  ggsave('./viz/Figure6.png', dpi = 400, width = 9.5, height = 5, bg = "white") 
@@ -616,7 +625,7 @@ prop_income <- p %>% select(1,7:8) %>% pivot_longer(-c(1), names_to = "type", va
   geom_line(aes(x = YEAR, y = income, color = type), size = 1.5) +
   project_theme +
   labs(title = "", color = "", y = "Average Proprietors Income", x = "") +
-  scale_color_manual(name="",labels = c("Farm", "Nonfarm"), values = c("#CC6677", "#DDCC77")) +
+  scale_color_manual(name="",labels = c("Farm", "Nonfarm"), values = c("#882255", "#CC6677")) +
    theme(legend.position="bottom") 
 
 ggarrange(hi, prop_income, nrow = 2, labels = c('A.', 'B.'),
@@ -870,6 +879,83 @@ ggplot(.) +
           legend.key.size = unit(4, 'mm'))
 
   ggsave("./viz/Figure11.png", dpi = 400, width = 110, height = 60, units = "mm", bg = "white")
+
+```
+
+### Figure 12.Gross production value, total costs, and net production value for major commodity crops over the last 40 years. Data: USDA ERS, 2021c 
+
+```{r}
+pxnviz <- rbind.data.frame(net_value, total_cost, total_pxn) %>% 
+  select(YEAR, VALUE, CROP, VAR) 
+
+adj <- read.csv("./data/adjustment.csv") %>% filter(Period == "YEAR") %>%
+  select(Year, Value)
+colnames(adj) <- c("YEAR", "PRICE_ADJ")
+
+pxnviz <- merge(pxnviz, adj, by = "YEAR" , all = T)
+pxnviz$VALUE_ADJ <- (pxnviz$VALUE * pxnviz$PRICE_ADJ)/100
+
+ggplot(pxnviz %>% filter(YEAR > 1990) %>% 
+         mutate(VAR = fct_relevel(VAR, "Gross production value","Total costs","Net production value"))) +
+  geom_line(aes(x = YEAR, y = VALUE_ADJ, color = VAR)) +
+  project_theme +
+  geom_hline(yintercept=0, linetype = "dashed") +
+  facet_wrap(~CROP) +
+  labs(color = "",
+       y = "$/acre",
+       x = "") +
+  theme(legend.position = "bottom") +
+  scale_color_manual(values = c("dark green", "orange", "red")) +
+  xlim(c(1989, 2021))
+
+
+ggsave("./viz/Figure12.png", plot = last_plot(), dpi = 400, width = 140, height = 70, units = "mm")
+```
+
+## Figure 13. Major commodity prices, adjusted using the price as paid index (PPITW) provided by the National Agriculture Statistics Service based on instruction for deflation from Jeff Gillespie, REE-ERS. Data: USDA ERS, 2021c
+
+```{r}
+hist <- readRDS("./data/hist_cws.RDS")
+recent <- readRDS("./data/recent_cws.RDS")
+
+build_time_series <- function(vars) {
+  
+ his <- hist %>% filter(ITEM == vars[[1]]) %>% select(YEAR, VALUE, ITEM, CROP)
+ rec <- recent %>% filter(REGION_ID == 10, ITEM == vars[[2]]) %>% select(YEAR, VALUE, ITEM, CROP)
+ 
+ fullts <- rbind.data.frame(his, rec)
+ 
+ return(fullts)
+
+}
+
+net_value <- build_time_series(c("Gross value of production less cash expenses", "Value of production less total costs listed"))
+net_value$VAR <- "Net production value"
+total_cost <- build_time_series(c("Total, cash expenses", "Total, costs listed"))
+total_cost$VAR <- "Total costs"
+total_pxn <- build_time_series(c("Total, gross value of production", "Total, gross value of production"))
+total_pxn$VAR <- "Gross production value"
+yield <- build_time_series(c("Yield (bu./planted acre)", "Yield"))
+yield$VAR <- "Yields (bu/ac)"
+price <- build_time_series(c("Harvest-period price (dollars/bu.)", "Price"))
+price$VAR <- "Price ($/bu)"
+
+adj <- read.csv("./data/adjustment.csv") %>% filter(Period == "YEAR") %>%
+  select(Year, Value)
+colnames(adj) <- c("YEAR", "PRICE_ADJ")
+
+price2 <- merge(price, adj, by = "YEAR" , all = T)
+price2$VALUE_ADJ <- (price2$VALUE * price2$PRICE_ADJ)/100
+
+library(forcats)
+ggplot(price2 %>% filter(YEAR > 1990) %>% mutate(CROP = fct_relevel(CROP, "Soy","Wheat","Corn"))) +
+  geom_line(aes(x = YEAR, y = VALUE_ADJ, color = CROP), size=1) +
+  project_theme +
+  labs(x = "",
+       y = "$/bushel", 
+       color = "")
+
+ggsave("./viz/Figure13.png", plot = last_plot(), dpi = 400, width = 130, height = 70, units = "mm")
 
 ```
 
