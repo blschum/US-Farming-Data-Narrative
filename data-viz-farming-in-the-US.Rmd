@@ -562,8 +562,12 @@ ggplot(t, aes(x = race, y=count , fill=type, alpha = factor(alpharace))) +
     labs(title = "", color = "", y = "", x = "") 
 
  ggsave('./viz/Figure6.png', dpi = 400, width = 9.5, height = 5, bg = "white") 
+ 
+### NOTE: must bring image out of R and in to editing software (we are using Inkspace) to build matrix legend you see in manuscript!
 ```
+
 ### Figure 7.(A.) Average Farm HH income and US HH income in Current $. (B.) Average farm and nonfarm proprietors’ gross income in the coterminous US, adjusted to 2019 dollars. Note break from 1998-2000 due to missing state-level data. Data: US BEA.
+
 ```{r}
 #inflation adjust to 2019 dollars 
 
