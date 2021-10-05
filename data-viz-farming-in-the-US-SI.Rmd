@@ -77,6 +77,54 @@ theme_map <- function(...) {
 
 ### **SI Figure 1**: 
 
+#### Average acres per operation in 2017, measured as the total number of agricultural acres in a county divided by the total number of operations. Data: USDA NASS QuickStats.
+```{r}
+############################################################
+# Acres per operation, mean in 2017
+############################################################
+size <- c %>% select(c(1:4,6:7)) %>% filter(year == 2017)  %>% mutate(ave_apo = round(tot_acres/n_op))
+
+size <- merge(counties, size, by = "GEOID")
+
+### Extract quantiles; use these to estimate quantiles, below!
+# Mean
+q <- size %>% 
+  pull(ave_apo) %>% # switch ave_apo
+  quantile(probs = seq(0, 1, length.out = 7), na.rm = T) %>%
+  as.vector() # to remove names of quantiles, so idx below is numeric
+
+### What are the quantiles?
+quantiles <- c(0,150,300,600,1200,2500,60000) # Mean
+
+### Create custom labels
+labels <- c("0 – 150 acres",      "150 – 300 acres",    "300 – 600 acres",    "600 – 1200 acres",   "1200 – 2500 acres",  "> 2500 acres") # Mean
+
+### Create a new variable with the quantiles
+# Mean
+df <- size %>%
+  mutate(mean_quantiles = cut(ave_apo,
+                               breaks = quantiles,
+                               labels = labels,
+                               include.lowest = T)) %>% 
+  filter(!is.na(ave_apo)) 
+
+### PLOT
+# Mean acres
+ggplot(data = df) +
+  geom_sf(mapping = aes(fill = mean_quantiles),color = "transparent",size = 0.01) +
+  geom_sf(data = states, fill = "transparent", color = "dark gray") +
+  scale_fill_brewer(palette = "YlGn") +
+  theme_map() +
+    theme(panel.grid.major = element_line(colour = "white"), 
+          legend.position="right",
+          legend.key.size = unit(4, 'mm'))
+
+  ggsave('./viz/SI-Figure1.png', dpi = 400, width = 110, height = 60, units = "mm", bg = "white")
+
+```
+
+### **SI Figure 2**: 
+
 #### The agricultural contribution to a county’s GDP in 2019. Data: US BEA. 
 ```{r}
 # county-level, in most recent year
@@ -111,9 +159,9 @@ ggplot(.) +
           legend.key.size = unit(4, 'mm')) +
   scale_fill_manual(values=c("#fef6b5","#ffdd9a","#ffc285","#ffa679","#fa8a76","#f16d7a","#e15383"),name="") 
   
-  ggsave('./viz/SI-Figure1.png', dpi = 400, width = 110, height = 60, units = "mm", bg = "white")
+  ggsave('./viz/SI-Figure2.png', dpi = 400, width = 110, height = 60, units = "mm", bg = "white")
 ```
-### **SI Figure 2**: 
+### **SI Figure 3**: 
 
 #### The proportion of all workers engaged in the direct production of agricultural commodities, livestock or crops (includes sole proprietors, partners, and hired laborers) in 2019. Data: US BEA
 ```{r}
@@ -153,7 +201,7 @@ ggplot(.) +
           legend.key.size = unit(4, 'mm')) +
   scale_fill_manual(values=c("#f9ddda","#f2b9c4","#e597b9","#ce78b3","#ad5fad","#834ba0","#573b88"),name="") 
 
-  ggsave('./viz/SI-Figure2.png', dpi = 400, width = 110, height = 60, units = "mm", bg = "white")
+  ggsave('./viz/SI-Figure3.png', dpi = 400, width = 110, height = 60, units = "mm", bg = "white")
   
 # labor expense statistics
 coa_stand <- readRDS("./data/COA-vars.RDS")
@@ -172,7 +220,7 @@ labor_exp <- labor_exp %>%  select(c(1:4, 14))
 heartland <- labor_exp %>% filter(FRR_NAME == "Heartland")
 ```
 
-### **SI Figure 3**: 
+### **SI Figure 4**: 
 
 #### (A.) Average age of primary operators in 2017. (B.) Change in average age between 1997 and 2017; where red, average age was less in 2017 than 1997. Data: USDA NASS QuickStats.
 ```{r}
@@ -258,82 +306,10 @@ age_diff <- ggplot() +
 # (A.) % full owners, (B.) % tenants
 library(ggpubr)
 ggarrange(ave_age, age_diff, labels = c("A.", "B."), ncol = 2, font.label = list(size = 8))
-ggsave("./viz/SI-Figure3.png", dpi = 400, units = "mm", width = 220, height = 60, bg = "white")
-```
-
-### **SI Figure 4**: 
-
-#### Experience, years on present farm; The vertical line in 1997 reflects USDA-NASS implementation of adjustments for under-coverage. We do not include the non-adjusted ‘97 values. Data: Robert Hoppe, USDA ERS.
-```{r}
-# Experience
-
-h %>%
-  select(c(1,18:20)) %>% filter(!is.na(exp_05)) %>% mutate(perc = exp_10/(exp_05+exp_09+exp_10)) %>%
-  pivot_longer(!c(1,5), names_to = "exp", values_to = "count") %>%  
-ggplot(.) +
-  geom_bar(aes(fill = exp, y = count, x = year), position = "fill", stat = "identity") +
-  scale_fill_manual(name = "", labels = c("Less than 5", "5 to 9", "Greater than 10"), values=c("#117733","#44AA99","#88CCEE")) +
-  labs(title = "", color = "", y = "", x = "") +
-  geom_vline(xintercept=c(1997), linetype="dotted") +
-  project_theme +
-  theme(legend.position="bottom") 
-
-  ggsave('./viz/SI-Figure4.png', dpi = 400, width = 100, height = 80, units = "mm")
-
-# percent in 1910
-1802540/5794768
-# percent in 2017
-2435435/3399834
+ggsave("./viz/SI-Figure4.png", dpi = 400, units = "mm", width = 220, height = 60, bg = "white")
 ```
 
 ### **SI Figure 5**: 
-
-#### Primary operators reported years’ experience on present operation in 2017. Data: USDA NASS QuickStats.
-```{r}
-############################################################
-# Years on any operation
-############################################################
-
-exp <- c_sf %>% select(c(1,10,12,17)) 
-
-### Extract quantiles; use these to estimate quantiles, below!
-q <- exp %>% filter(year == 2017) %>% 
-  pull(exp) %>%
-  quantile(probs = seq(0, 1, length.out = 7), na.rm = T) %>%
-  as.vector() # to remove names of quantiles, so idx below is numeric
-
-### What are the quantiles?
-quantiles <- c(5,15,20,22.5,25,27.5,32.6)
-
-### Create custom labels
-labels <- c("5 - 15 years",      "15 - 20 years",    "20 – 22.5 years",    "22.5 - 25 years",   "25 - 27.5 years",  "> 27.5 years")
-
-### Create a new variable with the quantiles
-df <- exp %>%
-  mutate(mean_quantiles = cut(exp,
-                               breaks = quantiles,
-                               labels = labels,
-                               include.lowest = T)) %>% 
-  filter(!is.na(exp)) %>% 
-  filter(year == 2017) 
-
-### PLOT
-ggplot(data = df) +
-  geom_sf(mapping = aes(fill = mean_quantiles),color = "transparent",size = 0.01) +
-  geom_sf(data = states, fill = "transparent", color = "dark gray") +
-  scale_fill_brewer(palette = "Blues") +
-  theme_map() +
-    theme(panel.grid.major = element_line(colour = "white"), 
-          legend.position="right",
-          legend.key.size = unit(4, 'mm'))
-
-  ggsave('./viz/SI-Figure5.png', dpi = 400, width = 110, height = 60, units = "mm", bg = "white")
-  
-# STATS
-z<- c %>% select(c(1,2,9)) %>% filter(year == 2017) %>% filter(exp >= 10) # (3058/3117)
-```
-
-### **SI Figure 6**: 
 
 American Indian or Alaska Native .......................................46,210
 Asian ...................................................................................16,978
@@ -408,7 +384,7 @@ ggplot(.) +
 # Build panel plots!
 ggarrange(race_operators, race_area, race_operations, labels = c("A.", "B.", "C."), ncol = 1, nrow = 3, common.legend = TRUE, legend = "bottom",
           font.label = list(size = 8))
-ggsave("./viz/SI-Figure6.png", dpi = 400, width = 150, height = 220, units = "mm", bg = "white")
+ggsave("./viz/SI-Figure5.png", dpi = 400, width = 150, height = 220, units = "mm", bg = "white")
 
 # race statistics
 sum <- re %>% filter(YEAR == 2017) %>% group_by(TYPE) %>% summarise(total = sum(VALUE))
@@ -419,6 +395,108 @@ sum <- re %>% filter(YEAR == 2017) %>% group_by(TYPE) %>% summarise(total = sum(
 # nonwhite operated acres by race of principal producer
 # ((total acreage - white acreage)/total acreage*100)
 ((907426277-843497615)/907426277*100)
+```
+### **SI Figure 6**: 
+
+#### (A.) Percent agricultural acres operated by POC and Hispanic-identifying  (i.e., Black, American Indian or Native Alaskan, Multi-racial, Asian, Native Hawaiian or other Pacific Islander) principal operators in 2017, and (B.) Percent of all US farm operations operated by POC and Hispanic-identifying principal operators in 2017. Data: USDA NASS QuickStats
+```{r}
+############################################################
+# Percent acres operated by folx identifying as black, hispanic, and white principal operators
+############################################################
+
+# proporation of each race
+race_prop <- r %>% mutate(TOTAL = rowSums(.[7:13])) %>% 
+  mutate(POC = (NATIVE_AMER + BLACK + MULTI + HISPANIC + ASIAN + PACIFIC_ISL)/TOTAL*100,
+         NATIVE_AMER = NATIVE_AMER/TOTAL*100,
+         BLACK = BLACK/TOTAL*100,
+         MULTI = MULTI/TOTAL*100,
+         WHITE = WHITE/TOTAL*100,
+         HISPANIC = HISPANIC/TOTAL*100,
+         ASIAN = ASIAN/TOTAL*100,
+         PACIFIC_ISL = PACIFIC_ISL/TOTAL*100) %>% 
+  filter(OPERATOR == "OPERATORS, PRINCIPAL") %>% 
+  select("GEOID", "YEAR", "OPERATOR", "TYPE", "WHITE", "POC", "NATIVE_AMER", "BLACK", "MULTI", "HISPANIC", "ASIAN", "PACIFIC_ISL", "TOTAL") %>% 
+  mutate_at(7:13, round, 3)
+
+# build spatial
+r_sf <- merge(counties, race_prop, by = "GEOID") 
+############################################################
+# Percent acres operated by POC principal operators
+############################################################
+
+### Extract quantiles; use these to estimate quantiles, below!
+q <- r_sf %>% filter(YEAR == 2017, TYPE == "AREA OPERATED") %>% 
+  pull(POC) %>%
+  quantile(probs = seq(0, 1, length.out = 7), na.rm = T) %>%
+  as.vector() # to remove names of quantiles, so idx below is numeric
+
+### What are the quantiles?
+quantiles <- c(0,0.125,0.75,2.5,5,25,100)
+
+### Create custom labels
+labels <- c("0 - 0.125%",      "0.125 - 0.75%",    "0.75 - 2.5%",    "2.5 - 5.0%",   "5.0 - 25.0%",  "> 25.0%")
+
+### Create a new variable with the quantiles
+df <- r_sf %>%
+  mutate(mean_quantiles = cut(POC,
+                               breaks = quantiles,
+                               labels = labels,
+                               include.lowest = T)) %>% 
+  filter(!is.na(POC)) %>% 
+  filter(YEAR == 2017, TYPE == "AREA OPERATED") 
+
+### PLOT
+# Percent POC operated acres - 2017
+POC_acres <- ggplot(data = df) +
+  geom_sf(mapping = aes(fill = mean_quantiles),color = "transparent",size = 0.01) +
+  geom_sf(data = states, fill = "transparent", color = "dark gray") +
+  scale_fill_brewer(palette = "GnBu") +
+  theme_map() +
+    theme(panel.grid.major = element_line(colour = "white"), 
+          legend.position="right",
+          legend.key.size = unit(4, 'mm'))
+
+############################################################
+# Percent operations operated by POC principle operators
+############################################################
+
+### Extract quantiles; use these to estimate quantiles, below!
+q <- r_sf %>% filter(YEAR == 2017, TYPE == "OPERATIONS") %>% 
+  pull(POC) %>%
+  quantile(probs = seq(0, 1, length.out = 7), na.rm = T) %>%
+  as.vector() # to remove names of quantiles, so idx below is numeric
+
+### What are the quantiles?
+quantiles <- c(0,1.25,2.5,5,10,25,100)
+
+### Create custom labels
+labels <- c("0 - 1.25%",      "1.25 - 2.5%",    "2.5 - 5.0%",    "5.0 - 10.0%",   "10.0 - 25.0%",  "> 25.0%")
+
+### Create a new variable with the quantiles
+df <- r_sf %>%
+  mutate(mean_quantiles = cut(POC,
+                               breaks = quantiles,
+                               labels = labels,
+                               include.lowest = T)) %>% 
+  filter(!is.na(POC)) %>% 
+  filter(YEAR == 2017, TYPE == "OPERATIONS") 
+
+### PLOT
+# Percent POC operated acres - 2017
+POC_operations <- ggplot(data = df) +
+  geom_sf(mapping = aes(fill = mean_quantiles),color = "transparent",size = 0.01) +
+  geom_sf(data = states, fill = "transparent", color = "dark gray") +
+  scale_fill_brewer(palette = "YlGn") +
+  theme_map() +
+    theme(panel.grid.major = element_line(colour = "white"), 
+          legend.position="right",
+          legend.key.size = unit(4, 'mm'))
+
+# Build panel plots!
+# (A.) Percent POC operated acres, (B.) Percent POC-run operations
+library(ggpubr)
+ggarrange(POC_acres, POC_operations, labels = c("A.", "B."), ncol = 2, font.label = list(size = 8))
+ggsave("./viz/SI-Figure6.png", dpi = 400, units = "mm", width = 220, height = 60, bg = "white")
 ```
 
 ### **SI Figure 7**: 
@@ -461,27 +539,6 @@ female_acres <- ggplot(data = df) +
     theme(panel.grid.major = element_line(colour = "white"), 
           legend.position="right",
           legend.key.size = unit(4, 'mm'))
-
-############################################################
-# Percent acres operated by folx identifying as black, hispanic, and white principal operators
-############################################################
-
-# proporation of each race
-race_prop <- r %>% mutate(TOTAL = rowSums(.[7:13])) %>% 
-  mutate(POC = (NATIVE_AMER + BLACK + MULTI + HISPANIC + ASIAN + PACIFIC_ISL)/TOTAL*100,
-         NATIVE_AMER = NATIVE_AMER/TOTAL*100,
-         BLACK = BLACK/TOTAL*100,
-         MULTI = MULTI/TOTAL*100,
-         WHITE = WHITE/TOTAL*100,
-         HISPANIC = HISPANIC/TOTAL*100,
-         ASIAN = ASIAN/TOTAL*100,
-         PACIFIC_ISL = PACIFIC_ISL/TOTAL*100) %>% 
-  filter(OPERATOR == "OPERATORS, PRINCIPAL") %>% 
-  select("GEOID", "YEAR", "OPERATOR", "TYPE", "WHITE", "POC", "NATIVE_AMER", "BLACK", "MULTI", "HISPANIC", "ASIAN", "PACIFIC_ISL", "TOTAL") %>% 
-  mutate_at(7:13, round, 3)
-
-# build spatial
-r_sf <- merge(counties, race_prop, by = "GEOID") 
 
 ### Extract quantiles; use these to estimate quantiles, below!
 q <- r_sf %>% filter(YEAR == 2017, TYPE == "AREA OPERATED") %>% 
@@ -565,177 +622,16 @@ library(ggpubr)
 ggarrange(black_acres, hisp_acres, white_acres, female_acres, labels = c("A.", "B.", "C.", "D."), ncol = 2, nrow = 2, font.label = list(size = 8))
 ggsave("./viz/SI-Figure7.png", dpi = 400, width = 220, height = 120, units = "mm", bg = "white")
 ```
-### **SI Figure 8**: 
 
-#### (A.) Percent agricultural acres operated by POC and Hispanic-identifying  (i.e., Black, American Indian or Native Alaskan, Multi-racial, Asian, Native Hawaiian or other Pacific Islander) principal operators in 2017, and (B.) Percent of all US farm operations operated by POC and Hispanic-identifying principal operators in 2017. Data: USDA NASS QuickStats
+### **SI Figure 8**:
+
+Change in most expensive inputs to agriculture. Data: USDA ERS, 2021c.
 ```{r}
-############################################################
-# Percent acres operated by POC principal operators
-############################################################
-
-### Extract quantiles; use these to estimate quantiles, below!
-q <- r_sf %>% filter(YEAR == 2017, TYPE == "AREA OPERATED") %>% 
-  pull(POC) %>%
-  quantile(probs = seq(0, 1, length.out = 7), na.rm = T) %>%
-  as.vector() # to remove names of quantiles, so idx below is numeric
-
-### What are the quantiles?
-quantiles <- c(0,0.125,0.75,2.5,5,25,100)
-
-### Create custom labels
-labels <- c("0 - 0.125%",      "0.125 - 0.75%",    "0.75 - 2.5%",    "2.5 - 5.0%",   "5.0 - 25.0%",  "> 25.0%")
-
-### Create a new variable with the quantiles
-df <- r_sf %>%
-  mutate(mean_quantiles = cut(POC,
-                               breaks = quantiles,
-                               labels = labels,
-                               include.lowest = T)) %>% 
-  filter(!is.na(POC)) %>% 
-  filter(YEAR == 2017, TYPE == "AREA OPERATED") 
-
-### PLOT
-# Percent POC operated acres - 2017
-POC_acres <- ggplot(data = df) +
-  geom_sf(mapping = aes(fill = mean_quantiles),color = "transparent",size = 0.01) +
-  geom_sf(data = states, fill = "transparent", color = "dark gray") +
-  scale_fill_brewer(palette = "GnBu") +
-  theme_map() +
-    theme(panel.grid.major = element_line(colour = "white"), 
-          legend.position="right",
-          legend.key.size = unit(4, 'mm'))
-
-############################################################
-# Percent operations operated by POC principle operators
-############################################################
-
-### Extract quantiles; use these to estimate quantiles, below!
-q <- r_sf %>% filter(YEAR == 2017, TYPE == "OPERATIONS") %>% 
-  pull(POC) %>%
-  quantile(probs = seq(0, 1, length.out = 7), na.rm = T) %>%
-  as.vector() # to remove names of quantiles, so idx below is numeric
-
-### What are the quantiles?
-quantiles <- c(0,1.25,2.5,5,10,25,100)
-
-### Create custom labels
-labels <- c("0 - 1.25%",      "1.25 - 2.5%",    "2.5 - 5.0%",    "5.0 - 10.0%",   "10.0 - 25.0%",  "> 25.0%")
-
-### Create a new variable with the quantiles
-df <- r_sf %>%
-  mutate(mean_quantiles = cut(POC,
-                               breaks = quantiles,
-                               labels = labels,
-                               include.lowest = T)) %>% 
-  filter(!is.na(POC)) %>% 
-  filter(YEAR == 2017, TYPE == "OPERATIONS") 
-
-### PLOT
-# Percent POC operated acres - 2017
-POC_operations <- ggplot(data = df) +
-  geom_sf(mapping = aes(fill = mean_quantiles),color = "transparent",size = 0.01) +
-  geom_sf(data = states, fill = "transparent", color = "dark gray") +
-  scale_fill_brewer(palette = "YlGn") +
-  theme_map() +
-    theme(panel.grid.major = element_line(colour = "white"), 
-          legend.position="right",
-          legend.key.size = unit(4, 'mm'))
-
-# Build panel plots!
-# (A.) Percent POC operated acres, (B.) Percent POC-run operations
-library(ggpubr)
-ggarrange(POC_acres, POC_operations, labels = c("A.", "B."), ncol = 2, font.label = list(size = 8))
-ggsave("./viz/SI-Figure8.png", dpi = 400, units = "mm", width = 220, height = 60, bg = "white")
+# Need code from EB
 ```
+
 
 ### **SI Figure 9**: 
-
-#### Proportion of acres operated by tenancy status. Data: USDA NASS QuickStats.
-```{r}
-c %>%
-  select(c(1:2,18:20)) %>% 
-  pivot_longer(!c(1,2), names_to = "tenancy", values_to = "acres") %>% 
-ggplot(.) +
-  geom_bar(aes(fill = forcats::fct_rev(tenancy), y = acres, x = year), position = "fill", stat = "identity") +
-  scale_fill_manual(name = "", labels = c("Tenant", "Part Owner", "Full Owner"), values=c("#44AA99","#88CCEE","#882255")) +
-  labs(title = "", color = "", y = "", x = "") +
-  project_theme +
-  theme(legend.position="bottom") +
-  scale_x_continuous(breaks = c(1997, 2002, 2007, 2012, 2017)) 
-  ggsave("./viz/SI-Figure9.png", dpi = 400, width = 100, height = 80, units = "mm")
-
-# STATS
-# tenancy through time
-
-z <- c %>%
-  select(c(1:2,18:20)) %>% 
-  filter(year == 2017)   
-
-z[is.na(z)] <- 0 
-
-z <- z %>% group_by(year) %>% 
-  summarise(full_owner = sum(full_owner),
-            part_owner = sum(part_owner),
-            tenant = sum(tenant))
-
-# proportion of acres operated by tenancy status
-# full owner
-294702960/879236316
-# part owner
-501792110/879236316
-# tenant
-82741246/879236316
-```
-
-### **SI Figure 10**: 
-
-#### Average acres per operation in 2017, measured as the total number of agricultural acres in a county divided by the total number of operations. Data: USDA NASS QuickStats.
-```{r}
-############################################################
-# Acres per operation, mean in 2017
-############################################################
-size <- c %>% select(c(1:4,6:7)) %>% filter(year == 2017)  %>% mutate(ave_apo = round(tot_acres/n_op))
-
-size <- merge(counties, size, by = "GEOID")
-
-### Extract quantiles; use these to estimate quantiles, below!
-# Mean
-q <- size %>% 
-  pull(ave_apo) %>% # switch ave_apo
-  quantile(probs = seq(0, 1, length.out = 7), na.rm = T) %>%
-  as.vector() # to remove names of quantiles, so idx below is numeric
-
-### What are the quantiles?
-quantiles <- c(0,150,300,600,1200,2500,60000) # Mean
-
-### Create custom labels
-labels <- c("0 – 150 acres",      "150 – 300 acres",    "300 – 600 acres",    "600 – 1200 acres",   "1200 – 2500 acres",  "> 2500 acres") # Mean
-
-### Create a new variable with the quantiles
-# Mean
-df <- size %>%
-  mutate(mean_quantiles = cut(ave_apo,
-                               breaks = quantiles,
-                               labels = labels,
-                               include.lowest = T)) %>% 
-  filter(!is.na(ave_apo)) 
-
-### PLOT
-# Mean acres
-ggplot(data = df) +
-  geom_sf(mapping = aes(fill = mean_quantiles),color = "transparent",size = 0.01) +
-  geom_sf(data = states, fill = "transparent", color = "dark gray") +
-  scale_fill_brewer(palette = "YlGn") +
-  theme_map() +
-    theme(panel.grid.major = element_line(colour = "white"), 
-          legend.position="right",
-          legend.key.size = unit(4, 'mm'))
-
-  ggsave('./viz/SI-Figure10.png', dpi = 400, width = 110, height = 60, units = "mm", bg = "white")
-
-```
-
-### **Figure 11**: 
 
 #### Share of gross farm cash receipts spent on all agricultural inputs. During the height of the Farm Crisis of the 1980s, for instance, US farmers spent over 90% of their gross earnings (ie. earnings before subtracting production expenses) on inputs to agriculture. 
 ```{r}
@@ -746,10 +642,19 @@ bea %>% select(c(1:3,11,23)) %>% filter(GeoName == "United States") %>% mutate(p
   project_theme +
   labs(title = "", color = "", y = "Share of Earnings (%) Spent on Inputs", x = "") 
 
-  ggsave("./viz/SI-Figure11.png", dpi = 400, width = 100, height = 80, units = "mm")
+  ggsave("./viz/SI-Figure9.png", dpi = 400, width = 100, height = 80, units = "mm")
 ```
 
-### **Figure 12**: 
+### **SI Figure 10**:
+
+National Expenditure on inputs to agricultural production. Data: USDA ERS, 2021c.
+```{r}
+# Need code from EB
+```
+
+
+
+### **SI Figure 11**: 
 
 #### Agricultural input expenditure as a proportion of gross farm cash receipts in 2017; where values are > 100% county input expenditures surpassed gross farm earnings. For example, in Chattahoochee, GA expenditure on inputs surpassed gross earnings for the county by just under 1000%. Data: US BEA. 
 ```{r}
@@ -781,10 +686,48 @@ ggplot(.) +
           legend.position="right",
           legend.key.size = unit(4, 'mm'))
 
-  ggsave('./viz/SI-Figure12.png', dpi = 400, width = 110, height = 60, units = "mm", bg = "white")
+  ggsave('./viz/SI-Figure11.png', dpi = 400, width = 110, height = 60, units = "mm", bg = "white")
+```
+### **SI Figure 12**: 
+
+#### Proportion of acres operated by tenancy status. Data: USDA NASS QuickStats.
+```{r}
+c %>%
+  select(c(1:2,18:20)) %>% 
+  pivot_longer(!c(1,2), names_to = "tenancy", values_to = "acres") %>% 
+ggplot(.) +
+  geom_bar(aes(fill = forcats::fct_rev(tenancy), y = acres, x = year), position = "fill", stat = "identity") +
+  scale_fill_manual(name = "", labels = c("Tenant", "Part Owner", "Full Owner"), values=c("#44AA99","#88CCEE","#882255")) +
+  labs(title = "", color = "", y = "", x = "") +
+  project_theme +
+  theme(legend.position="bottom") +
+  scale_x_continuous(breaks = c(1997, 2002, 2007, 2012, 2017)) 
+  ggsave("./viz/SI-Figure12.png", dpi = 400, width = 100, height = 80, units = "mm")
+
+# STATS
+# tenancy through time
+
+z <- c %>%
+  select(c(1:2,18:20)) %>% 
+  filter(year == 2017)   
+
+z[is.na(z)] <- 0 
+
+z <- z %>% group_by(year) %>% 
+  summarise(full_owner = sum(full_owner),
+            part_owner = sum(part_owner),
+            tenant = sum(tenant))
+
+# proportion of acres operated by tenancy status
+# full owner
+294702960/879236316
+# part owner
+501792110/879236316
+# tenant
+82741246/879236316
 ```
 
-### **SI Figure 15**: 
+### **SI Figure 13**: 
 
 #### Agricultural real estate debt from 1969 to 2019, adjusted for inflation using the chain-type GDP deflator provided by the USDA ERS. Data: USDA ERS.
 ```{r}
@@ -820,10 +763,10 @@ ggplot(.) +
         labels=c("$100B","$200B","$300B")) +
   theme(legend.position="bottom") 
 
-  ggsave("./viz/SI-Figure15.png", dpi = 400, width = 140, height = 80, units = "mm")
+  ggsave("./viz/SI-Figure13.png", dpi = 400, width = 140, height = 80, units = "mm")
 ```
 
-### **SI Figure 16**: 
+### **SI Figure 14**: 
 
 #### Agricultural non-real estate debt from 1969 to 2019, adjusted for inflation using the chain-type GDP deflator provided by the USDA ERS. Data: USDA ERS.
 ```{r}
@@ -840,5 +783,5 @@ ggplot(.) +
         labels=c("$50B","$100B","$150B","$200B")) +
   theme(legend.position="bottom") 
 
-  ggsave("./viz/SI-Figure16.png", dpi = 400, width = 140, height = 80, units = "mm")
+  ggsave("./viz/SI-Figure14.png", dpi = 400, width = 140, height = 80, units = "mm")
 ```
