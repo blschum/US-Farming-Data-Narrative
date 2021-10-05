@@ -10,7 +10,7 @@ output:
 ---
 
 ## Load relevant packages & common data
-```{r}
+```{r warning = F, message = F}
 library(tidyverse)
 library(ggplot2)
 library(ggpubr)
@@ -30,7 +30,7 @@ gsub(", " ,sep, toString(x[!is.na(x) & x!="" & x!="NA"] ) ) }
 ```
 
 
-# Pull in theme for maps
+### Pull in theme for maps
 ```{r}
 theme_map <- function(...) {
   theme_minimal() +
@@ -63,7 +63,9 @@ theme_map <- function(...) {
 ```
 
 
-### Figure 1: The nine US Farm Resource Regions delineated by the USDA ERS (2000). 
+### Figure 1: 
+
+The nine US Farm Resource Regions delineated by the USDA ERS (2000). 
 ```{r}
 frr <- readRDS("./data/FRR.RDS") 
 
@@ -81,7 +83,9 @@ ggsave('./viz/Figure1.png', dpi = 400, width = 110, height = 60, units = "mm", b
 
 ```
 
-### Figure 2. (A.) US farms, land in farms, and average farm size from 1850 to 2017. The vertical line in 1978 reflects USDA-NASS implementation of adjustments for under-coverage. Data: Robert Hoppe, USDA ERS. (B.) Number of agricultural jobs from 1969 to 2019. Data: US BEA.
+### Figure 2. 
+
+(A.) US farms, land in farms, and average farm size from 1850 to 2017. The vertical line in 1978 reflects USDA-NASS implementation of adjustments for under-coverage. Data: Robert Hoppe, USDA ERS. (B.) Number of agricultural jobs from 1969 to 2019. Data: US BEA.
 
 ```{r}
 # US land assets, historical data from Robert Hoppe at the USDA ERS
@@ -136,7 +140,9 @@ land %>% filter(YEAR == 1900 | YEAR == 2017 )
 employ %>% filter(YEAR == 1983 | YEAR == 2017)
 ```
 
-### Figure 3. (A.) The average age of primary operators from 1940 to 2017. (B.) The number of US farms with primary operators identifying as Black (red), white (blue), and members of all other races (yellow) from 1900 to 2017. For scale, it is important to note that farms operated by Black operators and members of all other races are shown in hundred thousands, while white operated farms are shown in millions. (C.) Number of primary operators by reported gender, shown in hundred thousands; overlayed with percent female primary operators. The USDA began statistical adjustments for under coverage in 1997, reflected in the vertical change (dotted vertical line) in average age in 1997 from 54.3 (unadjusted) to 54.0 (adjusted). Data: Compiled by Robert Hoppe of the USDA Economic Research Service and shared with the authors.
+### Figure 3. 
+
+(A.) The average age of primary operators from 1940 to 2017. (B.) The number of US farms with primary operators identifying as Black (red), white (blue), and members of all other races (yellow) from 1900 to 2017. For scale, it is important to note that farms operated by Black operators and members of all other races are shown in hundred thousands, while white operated farms are shown in millions. (C.) Number of primary operators by reported gender, shown in hundred thousands; overlayed with percent female primary operators. The USDA began statistical adjustments for under coverage in 1997, reflected in the vertical change (dotted vertical line) in average age in 1997 from 54.3 (unadjusted) to 54.0 (adjusted). Data: Compiled by Robert Hoppe of the USDA Economic Research Service and shared with the authors.
 ```{r}
 h <- read.csv("./data/historical-coa.csv")
 
@@ -198,7 +204,7 @@ ggplot(.) +
 
 ggarrange(age, race2, sex, nrow = 3, labels = c('A.', 'B.', 'C.'),
           font.label = list(size = 8))
-ggsave("./viz/Figure3-1.png", dpi = 400, width = 150, height = 240, units = "mm")
+ggsave("./viz/Figure3.png", dpi = 400, width = 150, height = 240, units = "mm")
 # Average Operator Age
 
 
@@ -218,7 +224,9 @@ f <- c %>% select(c(1:4,13,16)) %>%
 ```
 
 
-Figure 4. Percent primary operators identifying as (A.) Black, (B.) Hispanic, (C.) white, and (D.) female in 2017.  Data: USDA QuickStats, 2017 COA.
+### Figure 4. 
+
+Percent primary operators identifying as (A.) Black, (B.) Hispanic, (C.) white, and (D.) female in 2017.  Data: USDA QuickStats, 2017 COA.
 
 ```{r}
 # load data
@@ -381,6 +389,19 @@ r %>% mutate(TOTAL = rowSums(.[7:13])) %>%
          PACIFIC_ISL = sum(PACIFIC_ISL)/TOTAL*100,
          POC = NATIVE_AMER + BLACK + MULTI + HISPANIC + ASIAN + PACIFIC_ISL) 
 
+# Raw counts, nationally
+r %>% mutate(TOTAL = rowSums(.[7:13])) %>% 
+  filter(YEAR == 2017) %>% 
+  group_by(TYPE) %>% 
+  filter(OPERATOR == "OPERATORS, PRINCIPAL") %>% 
+  summarise(NATIVE_AMER = sum(NATIVE_AMER),
+         BLACK = sum(BLACK),
+         MULTI = sum(MULTI),
+         WHITE = sum(WHITE),
+         HISPANIC = sum(HISPANIC),
+         ASIAN = sum(ASIAN),
+         PACIFIC_ISL = sum(PACIFIC_ISL)) 
+
 # percent race by state
 rs <- r %>% mutate(TOTAL = rowSums(.[7:13])) %>% 
   group_by(YEAR, STATE, TYPE) %>% 
@@ -432,8 +453,415 @@ head(rs,10)
 
 ```
 
+### Figure 5.
 
-### Figure 5: A. Percent agricultural acres operated by principal operators who own the land they work in 2017. B. Percent agricultural acres operated by principal operators who rent the land they work (i.e. tenants) in 2017. Data: USDA QuickStats, 2017 COA.
+Average Farm HH income and US HH income in Current $. Data: US BEA.
+
+```{r}
+#inflation adjust to 2019 dollars 
+
+hi <- read.csv("./data/table13-householdincome.csv")
+
+hi <- hi %>%
+  select(1:4,6) %>% 
+  pivot_longer(-c(YEAR, USHH_Total), names_to = "variable", values_to = "income") %>% 
+  filter(variable != "FH_total") %>% 
+ggplot(.) +
+  geom_bar(aes(fill=variable, y=income, x=YEAR), position="stack", stat="identity") +
+  geom_line(aes(x = YEAR, y = USHH_Total, color = "US HH Total Income"), stat = "identity", size = 1.2) +
+  project_theme +
+  scale_fill_manual(name="",labels = c("Farm HH Income: Farm Portion", "Farm HH Income: Nonfarm Portion"), values = c("#882255", "#CC6677")) +
+  scale_color_manual(name="",values = c("US HH Total Income" = "#DDCC77")) +
+  theme(legend.position="bottom") +
+  labs(title = "", y = "Average Income in Current $", x = "") +
+  guides(fill=guide_legend(nrow=2)) +
+  scale_y_continuous(breaks=c(50000,100000),
+        labels=c("$50k", "$100k"))
+
+ggsave("./viz/Figure5.png", dpi = 400, width = 150, height = 90, unit = "mm")
+```
+
+### Figure 6: 
+
+Net cash farm income of operations (measured in $/operation) reported by the USDA-NASS in A) 2002, and B) 2017. Data: USDA NASS Quickstats
+```{r}
+c <- readRDS("./data/contemp-coa.RDS")
+nc <- c %>% filter(GEOID %in% counties$GEOID) %>% filter(year == 2017 | year == 2002) %>% filter(!is.na(net_income))
+
+# STATS
+c %>% filter(year == 2017, net_income < 0) %>% arrange(net_income) # 444/3034 reporting counties
+c %>% filter(year == 2002, net_income < 0) %>% arrange(net_income) #416/3034
+#464 counties > 10%
+
+nc_sf <- merge(counties, nc, by = "GEOID")
+
+# First, 2017
+# Pull quantiles
+q<- nc_sf %>%
+  filter(year == 2017) %>% 
+  pull(net_income) %>%
+  quantile(probs = seq(0, 1, length.out = 7), na.rm = T) %>%
+  as.vector() 
+
+quantiles <- c(-60000,0,5000,1250,25000,50000,100000,2000000)
+labels <- c("< $0",      "$0 - $5k",    "$5k - $12.5k",    "$12.5k - $25k",   "$25k - $50k", "$50k - $100k",  "> $100k")
+
+# Map ag contribution to GDP
+nc_op17 <- nc_sf %>%
+  mutate(quantiles = cut(net_income,
+                               breaks = quantiles,
+                               labels = labels,
+                               include.lowest = T)) %>% 
+  filter(year == 2017) %>% 
+ggplot(.) +
+  geom_sf(aes(fill = quantiles), color = "transparent") +
+  geom_sf(data = states, fill = "transparent", color = "dark gray") +
+ theme_map() +
+    theme(panel.grid.major = element_line(colour = "white"), legend.position="right",
+          legend.key.size = unit(4, 'mm')) +
+    scale_fill_manual(values = c("#B2182B","#F7F7F7", "#D1E5F0", "#92C5DE", "#4393C3", "#2166AC", "#053061"))
+
+# Now, 2002 using the same parameters
+nc_op02 <- nc_sf %>%
+  mutate(quantiles = cut(net_income,
+                               breaks = quantiles,
+                               labels = labels,
+                               include.lowest = T)) %>% 
+  filter(year == 2002) %>% 
+ggplot(.) +
+  geom_sf(aes(fill = quantiles), color = "transparent") +
+  geom_sf(data = states, fill = "transparent", color = "dark gray") +
+ theme_map() +
+    theme(panel.grid.major = element_line(colour = "white"), legend.position="right",
+          legend.key.size = unit(4, 'mm')) +
+    scale_fill_manual(values = c("#B2182B","#F7F7F7", "#D1E5F0", "#92C5DE", "#4393C3", "#2166AC", "#053061"))
+
+# Build panel plots!
+# (A.) net income 1969 (adjusted), (B.) net income 2019
+ggarrange(nc_op02, nc_op17, labels = c("A.", "B."), font.label = list(size = 8), common.legend = TRUE, legend = "right")
+ggsave("./viz/Figure6.png", dpi = 400, width = 220, height = 60, units = "mm", bg = "white")
+
+```
+
+### Figure 7: 
+
+Realized net income of farmers in (A.) 1969 and (B.) 2019, adjusted to 2019 dollars. Net income is defined as total cash receipts from all farms less total production expenses and is analogous to USDA -NASS measures of net cash farm income. We visualize BEA realized net income data because it dates back to 1969 while USDA -NASS county-level data only dates back to 1997. Counties in which net income is negative (red) had average production expenses that surpassed total cash receipts. For instance, Parker, TX realized $17M in 1969, but -$67M in 2019. Data: US BEA.
+```{r}
+options(scipen = 100)
+library(blscrapeR) 
+
+df<-inflation_adjust(2019) #this pulls a table of adjustment values (adjustment to 2019 $) 
+glimpse(df) 
+
+df$year<-as.numeric(df$year) 
+bea <- readRDS("./data/bea.RDS")
+bea$YEAR <- as.numeric(bea$YEAR)
+
+dat<-left_join(bea,df[,c(1,3)], by=c("YEAR"="year")) #this basically joins the inflation adjustment values to the dataset you want to adjust by joining by year of the data (so the current year data in the BEA dataset) in this case I am inflation adjusting the per capita income levels (pci) 
+dat$net_income_adj<-dat$net_income/dat$adj_value #this performs the actual dollar value adjustment
+
+# Realized net income in 1969
+i <- dat %>% filter(GEOID %in% counties$GEOID, YEAR == 1969) %>% select(c(1:3,69)) %>% filter(!is.na(net_income_adj)) %>% mutate(net_income_adj = net_income_adj*1000)
+
+i_sf <- merge(counties, i, by = "GEOID")
+glimpse(i_sf)
+
+# Pull quantiles
+q<- i_sf %>%
+  pull(net_income_adj) %>%
+  quantile(probs = seq(0, 1, length.out = 7), na.rm = T) %>%
+  as.vector() 
+
+quantiles <- c(-8000000,0,5000000, 10000000,20000000,40000000,60000000,800000000)
+labels <- c("< $0",      "$0 - $5M",    "$5 - $10M",    "$10 - $20M",   "$20 - $40M",  "$40 - $60M", "> $60M")
+
+# Map net income
+income_69 <- i_sf %>%
+  mutate(quantiles = cut(net_income_adj,
+                               breaks = quantiles,
+                               labels = labels,
+                               include.lowest = T)) %>% 
+ggplot(.) +
+  geom_sf(aes(fill = quantiles), color = "transparent") +
+  geom_sf(data = states, fill = "transparent", color = "dark gray") +
+  theme_map() +
+   theme(panel.grid.major = element_line(colour = "white"), 
+          legend.position="",
+          legend.key.size = unit(4, 'mm')) +
+  scale_fill_manual(values = c("#B2182B", "#ebf8ff", "#D1E5F0", "#92C5DE", "#4393C3", "#2166AC", "#053061"),name="") 
+
+# Realized net income
+# county-level, in most recent year
+i <- bea %>% filter(GEOID %in% counties$GEOID, YEAR == 2019) %>% select(c(1:3,24)) %>% filter(!is.na(net_income)) %>% mutate(net_income = net_income*1000)
+
+median(i$net_income)
+
+i_sf <- merge(counties, i, by = "GEOID")
+glimpse(i_sf)
+
+# Pull quantiles
+q<- i_sf %>%
+  pull(net_income) %>%
+  quantile(probs = seq(0, 1, length.out = 7), na.rm = T) %>%
+  as.vector() 
+
+quantiles <- c(-80000000,0,5000000, 10000000,20000000,40000000,60000000,2000000000)
+labels <- c("< $0",      "$0 - $5M",    "$5 - $10M",    "$10 - $20M",   "$20 - $40M",  "$40 - $60M", "> $60M")
+
+# Map net income
+income_19 <- i_sf %>%
+  mutate(quantiles = cut(net_income,
+                               breaks = quantiles,
+                               labels = labels,
+                               include.lowest = T)) %>% 
+ggplot(.) +
+  geom_sf(aes(fill = quantiles), color = "transparent") +
+  geom_sf(data = states, fill = "transparent", color = "dark gray") +
+  theme_map() +
+   theme(panel.grid.major = element_line(colour = "white"), 
+          legend.position="outside",
+          legend.key.size = unit(4, 'mm')) +
+  scale_fill_manual(values = c("#B2182B", "#FDDBC7", "#D1E5F0", "#92C5DE", "#4393C3", "#2166AC", "#053061"),name="") 
+
+# Build panel plots!
+# (A.) net income 1969 (adjusted), (B.) net income 2019
+ggarrange(income_69, income_19, labels = c("A.", "B."), font.label = list(size = 8), common.legend = TRUE, legend = "right")
+ggsave("./viz/Figure7.png", dpi = 400, width = 220, height = 60, units = "mm", bg = "white")
+
+# STATS
+# % counties reporting negative net income
+i <- bea %>% 
+  filter(GEOID %in% counties$GEOID, YEAR == 2019) %>% 
+  select(c(1:3,24)) %>% 
+  filter(!is.na(net_income)) %>% 
+  mutate(net_income = net_income*1000) %>%  #3057 total US counties
+  filter(net_income < 0)
+
+i <- bea %>% 
+  filter(GEOID %in% counties$GEOID, YEAR == 1969) %>% 
+  select(c(1:3,24)) %>% 
+  filter(!is.na(net_income)) %>% 
+  mutate(net_income = net_income*1000) %>%  #3062 total US counties
+  filter(net_income < 0)
+
+808/3057 # 2019
+70/3062 # 1969
+```
+
+### Figure 8: 
+
+(A.) Percent of county agricultural acres covered by crop insurance in 2017; (B.) Dollars provided per agricultural acre in government payouts to farmers in 2017. In 2017, US farms received an average of $11.59/acre (median = $8.69/acre) in government payments and an estimated 31.1% (median = 23.9%) of all agricultural acres were covered by crop insurance (Figure 12). Data: USDA NASS.
+```{r}
+
+c <- readRDS("./data/contemp-coa.RDS")
+#### (A.) Percent of county acres covered by crop insurance in 2017
+# county-level, in most recent year
+i <- c %>% filter(GEOID %in% counties$GEOID, year == 2017) %>% mutate(perc_insur = insur_acres/tot_acres*100) %>% filter(!is.na(perc_insur))
+
+ave(i$perc_insur)
+median(i$perc_insur)
+#464 counties > 10%
+
+i_sf <- merge(counties, i, by = "GEOID")
+
+# Pull quantiles
+q<- i_sf %>%
+  pull(perc_insur) %>%
+  quantile(probs = seq(0, 1, length.out = 7), na.rm = T) %>%
+  as.vector() 
+
+quantiles <- c(0,5,15,25,40,50,75,100)
+labels <- c("0 - 5%",      "5 - 15%",    "15 - 25%",    "25 - 40%",   "40 - 50%", "50 - 75%",  "> 75%")
+
+# Map ag contribution to GDP
+perc_insur <- i_sf %>%
+  mutate(quantiles = cut(perc_insur,
+                               breaks = quantiles,
+                               labels = labels,
+                               include.lowest = T)) %>% 
+  filter(year == 2017) %>% 
+ggplot(.) +
+  geom_sf(aes(fill = quantiles), color = "transparent") +
+  geom_sf(data = states, fill = "transparent", color = "dark gray") +
+ theme_map() +
+    theme(panel.grid.major = element_line(colour = "white"), legend.position="right",
+          legend.key.size = unit(4, 'mm')) +
+  scale_fill_brewer(palette = "YlOrBr") 
+
+#### (B.) Dollars provided per agricultural acre in government payouts to farmers.
+# county-level, in most recent year
+p <- c %>% filter(GEOID %in% counties$GEOID, year == 2017) %>% mutate(gvt_acre = gvt_prog/tot_acres) %>% filter(!is.na(gvt_acre))
+
+ave(p$gvt_acre)
+median(p$gvt_acre)
+#464 counties > 10%
+
+p_sf <- merge(counties, p, by = "GEOID")
+
+# Pull quantiles
+q<- p_sf %>%
+  pull(gvt_acre) %>%
+  quantile(probs = seq(0, 1, length.out = 8), na.rm = T) %>%
+  as.vector() 
+
+quantiles <- c(0,2.5,5,7.5,10,15,25,100)
+labels <- c("$0 - $2.5",      "$2.5 - $5",    "$5 - $7.5",    "$7.5 - $10",   "$10 - $15", "$15 - $25",  "> $25")
+
+# Map ag contribution to GDP
+gvt_acre <- p_sf %>%
+  mutate(quantiles = cut(gvt_acre,
+                               breaks = quantiles,
+                               labels = labels,
+                               include.lowest = T)) %>% 
+  filter(year == 2017) %>% 
+ggplot(.) +
+  geom_sf(aes(fill = quantiles), color = "transparent") +
+  geom_sf(data = states, fill = "transparent", color = "dark gray") +
+ theme_map() +
+    theme(panel.grid.major = element_line(colour = "white"), legend.position="right",
+          legend.key.size = unit(4, 'mm')) +
+  scale_fill_brewer(palette = "RdPu") 
+
+# Build panel plots!
+# (A.) % acres covered by crop insurance, (B.) $/ag acre in government payouts
+library(ggpubr)
+ggarrange(perc_insur, gvt_acre, labels = c("A.", "B."), ncol = 2, font.label = list(size = 8))
+ggsave("./viz/Figure8.png", dpi = 400, units = "mm", width = 220, height = 60, bg = "white")
+```
+
+### Figure 9. 
+
+Per acre expenditure on agricultural inputs in 2017; county-level agricultural expense data standardized by a county's total agricultural acres. Data: USDA ERS BEA, and USDA COA QuickStats.
+```{r}
+# load data
+c <- readRDS("./data/contemp-coa.RDS")
+
+ag_acres <- c %>% select(1:2,7) %>% filter(year == 2017) %>% rename("YEAR" = "year")
+expenses <- bea %>% select(1:2,11) %>%  filter(YEAR == 2017) %>% mutate(prod_exp = prod_exp*1000)
+
+per_acre_exp <- merge(ag_acres, expenses, by = c("GEOID","YEAR"))
+
+per_acre_exp <- per_acre_exp %>% mutate(exp_per_acre = prod_exp/tot_acres) %>% filter(!is.na(exp_per_acre))
+
+# stats
+median(per_acre_exp$exp_per_acre)
+mean(per_acre_exp$exp_per_acre)
+
+exp_sf <- merge(counties, per_acre_exp, by = "GEOID")
+glimpse(exp_sf)
+
+# Pull quantiles
+q<- exp_sf %>%
+  pull(exp_per_acre) %>%
+  quantile(probs = seq(0, 1, length.out = 7), na.rm = T) %>%
+  as.vector() 
+
+quantiles <- c(0,150,250,500, 600,800,1000,25000)
+labels <- c("$0 - $150",      "$150 - $250",    "$250 - $500",    "$500 - $600",   "$600 - $800",  "$800 - $1000", "> $1000")
+
+# Map net income
+exp_17 <- exp_sf %>%
+  mutate(quantiles = cut(exp_per_acre,
+                               breaks = quantiles,
+                               labels = labels,
+                               include.lowest = T)) %>% 
+ggplot(.) +
+  geom_sf(aes(fill = quantiles), color = "transparent") +
+  geom_sf(data = states, fill = "transparent", color = "dark gray") +
+  scale_fill_brewer(palette = "GnBu") +
+  theme_map() +
+    theme(panel.grid.major = element_line(colour = "white"), 
+          legend.position="right",
+          legend.key.size = unit(4, 'mm'))
+
+  ggsave("./viz/Figure9.png", dpi = 400, width = 110, height = 60, units = "mm", bg = "white")
+
+```
+
+### Figure 10. 
+
+Major commodity prices, adjusted using the price as paid index (PPITW) provided by the National Agriculture Statistics Service based on instruction for deflation from Jeff Gillespie, REE-ERS. Data: USDA ERS, 2021c
+
+```{r}
+hist <- readRDS("./data/hist_cws.RDS")
+recent <- readRDS("./data/recent_cws.RDS")
+
+build_time_series <- function(vars) {
+  
+ his <- hist %>% filter(ITEM == vars[[1]]) %>% select(YEAR, VALUE, ITEM, CROP)
+ rec <- recent %>% filter(REGION_ID == 10, ITEM == vars[[2]]) %>% select(YEAR, VALUE, ITEM, CROP)
+ 
+ fullts <- rbind.data.frame(his, rec)
+ 
+ return(fullts)
+
+}
+
+net_value <- build_time_series(c("Gross value of production less cash expenses", "Value of production less total costs listed"))
+net_value$VAR <- "Net production value"
+total_cost <- build_time_series(c("Total, cash expenses", "Total, costs listed"))
+total_cost$VAR <- "Total costs"
+total_pxn <- build_time_series(c("Total, gross value of production", "Total, gross value of production"))
+total_pxn$VAR <- "Gross production value"
+yield <- build_time_series(c("Yield (bu./planted acre)", "Yield"))
+yield$VAR <- "Yields (bu/ac)"
+price <- build_time_series(c("Harvest-period price (dollars/bu.)", "Price"))
+price$VAR <- "Price ($/bu)"
+
+adj <- read.csv("./data/adjustment.csv") %>% filter(Period == "YEAR") %>%
+  select(Year, Value)
+colnames(adj) <- c("YEAR", "PRICE_ADJ")
+
+price2 <- merge(price, adj, by = "YEAR" , all = T)
+price2$VALUE_ADJ <- (price2$VALUE * price2$PRICE_ADJ)/100
+
+library(forcats)
+ggplot(price2 %>% filter(YEAR > 1990) %>% mutate(CROP = fct_relevel(CROP, "Soy","Wheat","Corn"))) +
+  geom_line(aes(x = YEAR, y = VALUE_ADJ, color = CROP), size=1) +
+  project_theme +
+  labs(x = "",
+       y = "$/bushel", 
+       color = "")
+
+ggsave("./viz/Figure10.png", plot = last_plot(), dpi = 400, width = 130, height = 70, units = "mm")
+
+```
+
+### Figure 11.
+
+Gross production value, total costs, and net production value for major commodity crops over the last 40 years. Data: USDA ERS, 2021c 
+
+```{r}
+pxnviz <- rbind.data.frame(net_value, total_cost, total_pxn) %>% 
+  select(YEAR, VALUE, CROP, VAR) 
+
+adj <- read.csv("./data/adjustment.csv") %>% filter(Period == "YEAR") %>%
+  select(Year, Value)
+colnames(adj) <- c("YEAR", "PRICE_ADJ")
+
+pxnviz <- merge(pxnviz, adj, by = "YEAR" , all = T)
+pxnviz$VALUE_ADJ <- (pxnviz$VALUE * pxnviz$PRICE_ADJ)/100
+
+ggplot(pxnviz %>% filter(YEAR > 1990) %>% 
+         mutate(VAR = fct_relevel(VAR, "Gross production value","Total costs","Net production value"))) +
+  geom_line(aes(x = YEAR, y = VALUE_ADJ, color = VAR)) +
+  project_theme +
+  geom_hline(yintercept=0, linetype = "dashed") +
+  facet_wrap(~CROP) +
+  labs(color = "",
+       y = "$/acre",
+       x = "") +
+  theme(legend.position = "bottom") +
+  scale_color_manual(values = c("dark green", "orange", "red")) +
+  xlim(c(1989, 2021))
+
+
+ggsave("./viz/Figure11.png", plot = last_plot(), dpi = 400, width = 140, height = 70, units = "mm")
+```
+
+### Figure 12: 
+
+A. Percent agricultural acres operated by principal operators who own the land they work in 2017. B. Percent agricultural acres operated by principal operators who rent the land they work (i.e. tenants) in 2017. Data: USDA QuickStats, 2017 COA.
 ```{r}
 # load data
 c <- readRDS("./data/contemp-coa.RDS")
@@ -520,11 +948,13 @@ owners <- ggplot(data = df) +
 # Build panel plots!
 # (A.) % full owners, (B.) % tenants
 ggarrange(owners, tenants, labels = c("A.", "B."), ncol = 2, font.label = list(size = 8))
-ggsave("./viz/Figure5.png", dpi = 400, width = 220, height = 60, units = "mm", bg = "white")
+ggsave("./viz/Figure12.png", dpi = 400, width = 220, height = 60, units = "mm", bg = "white")
 
 ```
 
-### Figure 6: Proportion ownership of land by race from 1900 to 2017. In each year the left column shows the proportion of land owned and rented by POC, and the right, by White operators. Due to data limitations (i.e. historical lack of intersectionality in data collection) we can only visualize White versus all Other races. Data: Robert Hoppe, USDA ERS.
+### Figure 13: 
+
+Proportion ownership of land by race from 1900 to 2017. In each year the left column shows the proportion of land owned and rented by POC, and the right, by White operators. Due to data limitations (i.e. historical lack of intersectionality in data collection) we can only visualize White versus all Other races. Data: Robert Hoppe, USDA ERS.
 
 ```{r}
 
@@ -561,409 +991,14 @@ ggplot(t, aes(x = race, y=count , fill=type, alpha = factor(alpharace))) +
   facet_wrap(~year,nrow=1, strip.position = "bottom") +
     labs(title = "", color = "", y = "", x = "") 
 
- ggsave('./viz/Figure6.png', dpi = 400, width = 9.5, height = 5, bg = "white") 
+ ggsave('./viz/Figure13.png', dpi = 400, width = 9.5, height = 5, bg = "white") 
  
-### NOTE: must bring image out of R and in to editing software (we are using Inkspace) to build matrix legend you see in manuscript!
+### NOTE: must bring image out of R and in to editing software (we are using Inkscape) to build matrix legend you see in manuscript!
 ```
 
-### Figure 7.(A.) Average Farm HH income and US HH income in Current $. (B.) Average farm and nonfarm proprietors’ gross income in the coterminous US, adjusted to 2019 dollars. Note break from 1998-2000 due to missing state-level data. Data: US BEA.
+### Figure 14.
 
-```{r}
-#inflation adjust to 2019 dollars 
-
-hi <- read.csv("./data/table13-householdincome.csv")
-
-hi <- hi %>%
-  select(1:4,6) %>% 
-  pivot_longer(-c(YEAR, USHH_Total), names_to = "variable", values_to = "income") %>% 
-  filter(variable != "FH_total") %>% 
-ggplot(.) +
-  geom_bar(aes(fill=variable, y=income, x=YEAR), position="stack", stat="identity") +
-  geom_line(aes(x = YEAR, y = USHH_Total, color = "US HH Total Income"), stat = "identity", size = 1.2) +
-  project_theme +
-  scale_fill_manual(name="",labels = c("Farm HH Income: Farm Portion", "Farm HH Income: Nonfarm Portion"), values = c("#882255", "#CC6677")) +
-  scale_color_manual(name="",values = c("US HH Total Income" = "#DDCC77")) +
-  theme(legend.position="bottom") +
-  labs(title = "", y = "Average Income in Current $", x = "") +
-  guides(fill=guide_legend(nrow=2)) +
-  scale_y_continuous(breaks=c(50000,100000),
-        labels=c("$50k", "$100k"))
-
-options(scipen = 100)
-library(blscrapeR) 
-
-df<-inflation_adjust(2019) #this pulls a table of adjustment values (adjustment to 2019 $) 
-glimpse(df) 
-
-df$year<-as.numeric(df$year) 
-
-bea <- readRDS("./data/bea.RDS")
-bea$YEAR <- as.numeric(bea$YEAR)
-
-dat<-left_join(bea,df[,c(1,3)], by=c("YEAR"="year")) #this basically joins the inflation adjustment values to the dataset you want to adjust by joining by year of the data (so the current year data in the BEA dataset) in this case I am inflation adjusting the per capita income levels (pci) 
-
-dat$net_income_adj<-dat$net_income/dat$adj_value #this performs the actual dollar value adjustment
-p <- dat %>% select(c(1:3,farmprop_income, farmprop_employ, nonfarmprop_income, nonfarmprop_employ,68, prod_exp))
-
-p$farmprop_income_adj<-p$farmprop_income/p$adj_value
-p$nonfarmprop_income_adj<-p$nonfarmprop_income/p$adj_value
-
-p <- p %>% 
-  subset(!(GEOID %in% counties$GEOID)) %>% 
-  filter(str_detect(GEOID, pattern = "000"),
-         GEOID != "00000" & GEOID != "11000" & GEOID != "02000" & GEOID != "15000") %>% 
-  filter(as.numeric(as.character((GEOID))) < 91000) %>% 
-  group_by(YEAR) %>% 
-  summarise(US_farm_income = sum(farmprop_income_adj),
-         US_farm_employ = sum(farmprop_employ),
-         US_nonfarm_income = sum(nonfarmprop_income_adj),
-         US_nonfarm_employ = sum(nonfarmprop_employ),
-         US_prod_exp = sum(prod_exp)) %>% 
-  mutate(ave_farm = US_farm_income*1000/US_farm_employ,
-         ave_nonfarm = US_nonfarm_income*1000/US_nonfarm_employ,
-         exp_prop = US_prod_exp*1000/US_farm_employ)
-
-
-prop_income <- p %>% select(1,7:8) %>% pivot_longer(-c(1), names_to = "type", values_to = "income") %>% 
-  ggplot(.) +
-  geom_line(aes(x = YEAR, y = income, color = type), size = 1.5) +
-  project_theme +
-  labs(title = "", color = "", y = "Average Proprietors Income", x = "") +
-  scale_color_manual(name="",labels = c("Farm", "Nonfarm"), values = c("#882255", "#CC6677")) +
-   theme(legend.position="bottom") 
-
-ggarrange(hi, prop_income, nrow = 2, labels = c('A.', 'B.'),
-          font.label = list(size = 8))
-ggsave("./viz/Figure7.png", dpi = 400, width = 150, height = 180, unit = "mm")
-```
-
-
-### Figure 8: Net cash farm income of operations (measured in $/operation) reported by the USDA-NASS in 2017. Data: USDA NASS Quickstats
-```{r}
-nc <- c %>% filter(GEOID %in% counties$GEOID, year == 2017) %>% filter(!is.na(net_income))
-
-# STATS
-c %>% filter(year == 2017, net_income < 0) %>% arrange(net_income) # 444/3034 reporting counties
-
-#464 counties > 10%
-
-nc_sf <- merge(counties, nc, by = "GEOID")
-
-# Pull quantiles
-q<- nc_sf %>%
-  pull(net_income) %>%
-  quantile(probs = seq(0, 1, length.out = 7), na.rm = T) %>%
-  as.vector() 
-
-quantiles <- c(-60000,0,5000,1250,25000,50000,100000,2000000)
-labels <- c("< $0",      "$0 - $5k",    "$5k - $12.5k",    "$12.5k - $25k",   "$25k - $50k", "$50k - $100k",  "> $100k")
-
-# Map ag contribution to GDP
-nc_op <- nc_sf %>%
-  mutate(quantiles = cut(net_income,
-                               breaks = quantiles,
-                               labels = labels,
-                               include.lowest = T)) %>% 
-  filter(year == 2017) %>% 
-ggplot(.) +
-  geom_sf(aes(fill = quantiles), color = "transparent") +
-  geom_sf(data = states, fill = "transparent", color = "dark gray") +
- theme_map() +
-    theme(panel.grid.major = element_line(colour = "white"), legend.position="right",
-          legend.key.size = unit(4, 'mm')) +
-    scale_fill_manual(values = c("#B2182B","#F7F7F7", "#D1E5F0", "#92C5DE", "#4393C3", "#2166AC", "#053061"))
-
-   ggsave("./viz/Figure8.png", dpi = 400, width = 110, height = 60, units = "mm", bg = "white")
-
-```
-
-### Figure 9: (A.) Percent of county agricultural acres covered by crop insurance in 2017; (B.) Dollars provided per agricultural acre in government payouts to farmers in 2017. In 2017, US farms received an average of $11.59/acre (median = $8.69/acre) in government payments and an estimated 31.1% (median = 23.9%) of all agricultural acres were covered by crop insurance (Figure 12). Data: USDA NASS.
-```{r}
-
-c <- readRDS("./data/contemp-coa.RDS")
-#### (A.) Percent of county acres covered by crop insurance in 2017
-# county-level, in most recent year
-i <- c %>% filter(GEOID %in% counties$GEOID, year == 2017) %>% mutate(perc_insur = insur_acres/tot_acres*100) %>% filter(!is.na(perc_insur))
-
-ave(i$perc_insur)
-median(i$perc_insur)
-#464 counties > 10%
-
-i_sf <- merge(counties, i, by = "GEOID")
-
-# Pull quantiles
-q<- i_sf %>%
-  pull(perc_insur) %>%
-  quantile(probs = seq(0, 1, length.out = 7), na.rm = T) %>%
-  as.vector() 
-
-quantiles <- c(0,5,15,25,40,50,75,100)
-labels <- c("0 - 5%",      "5 - 15%",    "15 - 25%",    "25 - 40%",   "40 - 50%", "50 - 75%",  "> 75%")
-
-# Map ag contribution to GDP
-perc_insur <- i_sf %>%
-  mutate(quantiles = cut(perc_insur,
-                               breaks = quantiles,
-                               labels = labels,
-                               include.lowest = T)) %>% 
-  filter(year == 2017) %>% 
-ggplot(.) +
-  geom_sf(aes(fill = quantiles), color = "transparent") +
-  geom_sf(data = states, fill = "transparent", color = "dark gray") +
- theme_map() +
-    theme(panel.grid.major = element_line(colour = "white"), legend.position="right",
-          legend.key.size = unit(4, 'mm')) +
-  scale_fill_brewer(palette = "YlOrBr") 
-
-#### (B.) Dollars provided per agricultural acre in government payouts to farmers.
-# county-level, in most recent year
-p <- c %>% filter(GEOID %in% counties$GEOID, year == 2017) %>% mutate(gvt_acre = gvt_prog/tot_acres) %>% filter(!is.na(gvt_acre))
-
-ave(p$gvt_acre)
-median(p$gvt_acre)
-#464 counties > 10%
-
-p_sf <- merge(counties, p, by = "GEOID")
-
-# Pull quantiles
-q<- p_sf %>%
-  pull(gvt_acre) %>%
-  quantile(probs = seq(0, 1, length.out = 8), na.rm = T) %>%
-  as.vector() 
-
-quantiles <- c(0,2.5,5,7.5,10,15,25,100)
-labels <- c("$0 - $2.5",      "$2.5 - $5",    "$5 - $7.5",    "$7.5 - $10",   "$10 - $15", "$15 - $25",  "> $25")
-
-# Map ag contribution to GDP
-gvt_acre <- p_sf %>%
-  mutate(quantiles = cut(gvt_acre,
-                               breaks = quantiles,
-                               labels = labels,
-                               include.lowest = T)) %>% 
-  filter(year == 2017) %>% 
-ggplot(.) +
-  geom_sf(aes(fill = quantiles), color = "transparent") +
-  geom_sf(data = states, fill = "transparent", color = "dark gray") +
- theme_map() +
-    theme(panel.grid.major = element_line(colour = "white"), legend.position="right",
-          legend.key.size = unit(4, 'mm')) +
-  scale_fill_brewer(palette = "RdPu") 
-
-# Build panel plots!
-# (A.) % acres covered by crop insurance, (B.) $/ag acre in government payouts
-library(ggpubr)
-ggarrange(perc_insur, gvt_acre, labels = c("A.", "B."), ncol = 2, font.label = list(size = 8))
-ggsave("./viz/Figure9.png", dpi = 400, units = "mm", width = 220, height = 60, bg = "white")
-```
-
-### Figure 10: Realized net income of farmers in (A.) 1969 and (B.) 2019, adjusted to 2019 dollars. Net income is defined as total cash receipts from all farms less total production expenses and is analogous to USDA -NASS measures of net cash farm income. We visualize BEA realized net income data because it dates back to 1969 while USDA -NASS county-level data only dates back to 1997. Counties in which net income is negative (red) had average production expenses that surpassed total cash receipts. For instance, Parker, TX realized $17M in 1969, but -$67M in 2019. Data: US BEA.
-```{r}
-
-# Realized net income in 1969
-i <- dat %>% filter(GEOID %in% counties$GEOID, YEAR == 1969) %>% select(c(1:3,69)) %>% filter(!is.na(net_income_adj)) %>% mutate(net_income_adj = net_income_adj*1000)
-
-i_sf <- merge(counties, i, by = "GEOID")
-glimpse(i_sf)
-
-# Pull quantiles
-q<- i_sf %>%
-  pull(net_income_adj) %>%
-  quantile(probs = seq(0, 1, length.out = 7), na.rm = T) %>%
-  as.vector() 
-
-quantiles <- c(-8000000,0,5000000, 10000000,20000000,40000000,60000000,800000000)
-labels <- c("< $0",      "$0 - $5M",    "$5 - $10M",    "$10 - $20M",   "$20 - $40M",  "$40 - $60M", "> $60M")
-
-# Map net income
-income_69 <- i_sf %>%
-  mutate(quantiles = cut(net_income_adj,
-                               breaks = quantiles,
-                               labels = labels,
-                               include.lowest = T)) %>% 
-ggplot(.) +
-  geom_sf(aes(fill = quantiles), color = "transparent") +
-  geom_sf(data = states, fill = "transparent", color = "dark gray") +
-  theme_map() +
-   theme(panel.grid.major = element_line(colour = "white"), 
-          legend.position="",
-          legend.key.size = unit(4, 'mm')) +
-  scale_fill_manual(values = c("#B2182B", "#ebf8ff", "#D1E5F0", "#92C5DE", "#4393C3", "#2166AC", "#053061"),name="") 
-
-# Realized net income
-# county-level, in most recent year
-i <- bea %>% filter(GEOID %in% counties$GEOID, YEAR == 2019) %>% select(c(1:3,24)) %>% filter(!is.na(net_income)) %>% mutate(net_income = net_income*1000)
-
-median(i$net_income)
-
-i_sf <- merge(counties, i, by = "GEOID")
-glimpse(i_sf)
-
-# Pull quantiles
-q<- i_sf %>%
-  pull(net_income) %>%
-  quantile(probs = seq(0, 1, length.out = 7), na.rm = T) %>%
-  as.vector() 
-
-quantiles <- c(-80000000,0,5000000, 10000000,20000000,40000000,60000000,2000000000)
-labels <- c("< $0",      "$0 - $5M",    "$5 - $10M",    "$10 - $20M",   "$20 - $40M",  "$40 - $60M", "> $60M")
-
-# Map net income
-income_19 <- i_sf %>%
-  mutate(quantiles = cut(net_income,
-                               breaks = quantiles,
-                               labels = labels,
-                               include.lowest = T)) %>% 
-ggplot(.) +
-  geom_sf(aes(fill = quantiles), color = "transparent") +
-  geom_sf(data = states, fill = "transparent", color = "dark gray") +
-  theme_map() +
-   theme(panel.grid.major = element_line(colour = "white"), 
-          legend.position="outside",
-          legend.key.size = unit(4, 'mm')) +
-  scale_fill_manual(values = c("#B2182B", "#FDDBC7", "#D1E5F0", "#92C5DE", "#4393C3", "#2166AC", "#053061"),name="") 
-
-# Build panel plots!
-# (A.) net income 1969 (adjusted), (B.) net income 2019
-ggarrange(income_69, income_19, labels = c("A.", "B."), font.label = list(size = 8), common.legend = TRUE, legend = "right")
-ggsave("./viz/Figure10.png", dpi = 400, width = 220, height = 60, units = "mm", bg = "white")
-
-# STATS
-# % counties reporting negative net income
-i <- bea %>% 
-  filter(GEOID %in% counties$GEOID, YEAR == 2019) %>% 
-  select(c(1:3,24)) %>% 
-  filter(!is.na(net_income)) %>% 
-  mutate(net_income = net_income*1000) %>%  #3057 total US counties
-  filter(net_income < 0)
-
-808/3057
-```
-
-### Figure 11. Per acre expenditure on agricultural inputs in 2017; county-level agricultural expense data standardized by a county's total agricultural acres. Data: USDA ERS BEA, and USDA COA QuickStats.
-```{r}
-# load data
-c <- readRDS("./data/contemp-coa.RDS")
-
-ag_acres <- c %>% select(1:2,7) %>% filter(year == 2017) %>% rename("YEAR" = "year")
-expenses <- bea %>% select(1:2,11) %>%  filter(YEAR == 2017) %>% mutate(prod_exp = prod_exp*1000)
-
-per_acre_exp <- merge(ag_acres, expenses, by = c("GEOID","YEAR"))
-
-per_acre_exp <- per_acre_exp %>% mutate(exp_per_acre = prod_exp/tot_acres) %>% filter(!is.na(exp_per_acre))
-
-# stats
-median(per_acre_exp$exp_per_acre)
-mean(per_acre_exp$exp_per_acre)
-
-exp_sf <- merge(counties, per_acre_exp, by = "GEOID")
-glimpse(exp_sf)
-
-# Pull quantiles
-q<- exp_sf %>%
-  pull(exp_per_acre) %>%
-  quantile(probs = seq(0, 1, length.out = 7), na.rm = T) %>%
-  as.vector() 
-
-quantiles <- c(0,150,250,500, 600,800,1000,25000)
-labels <- c("$0 - $150",      "$150 - $250",    "$250 - $500",    "$500 - $600",   "$600 - $800",  "$800 - $1000", "> $1000")
-
-# Map net income
-exp_17 <- exp_sf %>%
-  mutate(quantiles = cut(exp_per_acre,
-                               breaks = quantiles,
-                               labels = labels,
-                               include.lowest = T)) %>% 
-ggplot(.) +
-  geom_sf(aes(fill = quantiles), color = "transparent") +
-  geom_sf(data = states, fill = "transparent", color = "dark gray") +
-  scale_fill_brewer(palette = "GnBu") +
-  theme_map() +
-    theme(panel.grid.major = element_line(colour = "white"), 
-          legend.position="right",
-          legend.key.size = unit(4, 'mm'))
-
-  ggsave("./viz/Figure11.png", dpi = 400, width = 110, height = 60, units = "mm", bg = "white")
-
-```
-
-### Figure 12.Gross production value, total costs, and net production value for major commodity crops over the last 40 years. Data: USDA ERS, 2021c 
-
-```{r}
-pxnviz <- rbind.data.frame(net_value, total_cost, total_pxn) %>% 
-  select(YEAR, VALUE, CROP, VAR) 
-
-adj <- read.csv("./data/adjustment.csv") %>% filter(Period == "YEAR") %>%
-  select(Year, Value)
-colnames(adj) <- c("YEAR", "PRICE_ADJ")
-
-pxnviz <- merge(pxnviz, adj, by = "YEAR" , all = T)
-pxnviz$VALUE_ADJ <- (pxnviz$VALUE * pxnviz$PRICE_ADJ)/100
-
-ggplot(pxnviz %>% filter(YEAR > 1990) %>% 
-         mutate(VAR = fct_relevel(VAR, "Gross production value","Total costs","Net production value"))) +
-  geom_line(aes(x = YEAR, y = VALUE_ADJ, color = VAR)) +
-  project_theme +
-  geom_hline(yintercept=0, linetype = "dashed") +
-  facet_wrap(~CROP) +
-  labs(color = "",
-       y = "$/acre",
-       x = "") +
-  theme(legend.position = "bottom") +
-  scale_color_manual(values = c("dark green", "orange", "red")) +
-  xlim(c(1989, 2021))
-
-
-ggsave("./viz/Figure12.png", plot = last_plot(), dpi = 400, width = 140, height = 70, units = "mm")
-```
-
-## Figure 13. Major commodity prices, adjusted using the price as paid index (PPITW) provided by the National Agriculture Statistics Service based on instruction for deflation from Jeff Gillespie, REE-ERS. Data: USDA ERS, 2021c
-
-```{r}
-hist <- readRDS("./data/hist_cws.RDS")
-recent <- readRDS("./data/recent_cws.RDS")
-
-build_time_series <- function(vars) {
-  
- his <- hist %>% filter(ITEM == vars[[1]]) %>% select(YEAR, VALUE, ITEM, CROP)
- rec <- recent %>% filter(REGION_ID == 10, ITEM == vars[[2]]) %>% select(YEAR, VALUE, ITEM, CROP)
- 
- fullts <- rbind.data.frame(his, rec)
- 
- return(fullts)
-
-}
-
-net_value <- build_time_series(c("Gross value of production less cash expenses", "Value of production less total costs listed"))
-net_value$VAR <- "Net production value"
-total_cost <- build_time_series(c("Total, cash expenses", "Total, costs listed"))
-total_cost$VAR <- "Total costs"
-total_pxn <- build_time_series(c("Total, gross value of production", "Total, gross value of production"))
-total_pxn$VAR <- "Gross production value"
-yield <- build_time_series(c("Yield (bu./planted acre)", "Yield"))
-yield$VAR <- "Yields (bu/ac)"
-price <- build_time_series(c("Harvest-period price (dollars/bu.)", "Price"))
-price$VAR <- "Price ($/bu)"
-
-adj <- read.csv("./data/adjustment.csv") %>% filter(Period == "YEAR") %>%
-  select(Year, Value)
-colnames(adj) <- c("YEAR", "PRICE_ADJ")
-
-price2 <- merge(price, adj, by = "YEAR" , all = T)
-price2$VALUE_ADJ <- (price2$VALUE * price2$PRICE_ADJ)/100
-
-library(forcats)
-ggplot(price2 %>% filter(YEAR > 1990) %>% mutate(CROP = fct_relevel(CROP, "Soy","Wheat","Corn"))) +
-  geom_line(aes(x = YEAR, y = VALUE_ADJ, color = CROP), size=1) +
-  project_theme +
-  labs(x = "",
-       y = "$/bushel", 
-       color = "")
-
-ggsave("./viz/Figure13.png", plot = last_plot(), dpi = 400, width = 130, height = 70, units = "mm")
-
-```
-
-### Figure 14.Rising farm sector debt, adjusted for inflation using the chain-type GDP deflator provided by the USDA ERS. Farm sector debt is all debt (real estate and non-real estate) accrued by the agricultural sector. See SI Ffigure 15 and 16 for breakdown of non-real estate and real estate debt. Data: USDA ERS.
+Rising farm sector debt, adjusted for inflation using the chain-type GDP deflator provided by the USDA ERS. Farm sector debt is all debt (real estate and non-real estate) accrued by the agricultural sector. See SI Ffigure 15 and 16 for breakdown of non-real estate and real estate debt. Data: USDA ERS.
 
 ```{r warning = F, message = F}
 w <- read.csv("./data/ers-wealthstatdata.csv")
@@ -998,154 +1033,5 @@ ggplot(.) +
   ggsave("./viz/Figure14.png", dpi = 400, width = 150, height = 90, units = "mm")
 ```
 
-
-############################ TRASH
-
-### Figure ???: 
-
-```{r}
-n <- read.csv("./data/net-income-by-farm-size.csv")
-
-n <- n %>% pivot_longer(!c(1:2), names_to = "year", values_to = "net_income") %>%  filter(X != "Farm size by gross sales value") %>% filter(X!="Farm typology") %>% filter(X!="All farms") %>% rename("typology" = X) %>%  rename("farm_share" = Share.of.US.farms)
-
-n$year <- as.factor(n$year)
-
-levels(n$year) <- c(2012:2021)
-
-
-```
-
-### Figure 10: A.  Median acres per operation in 2017; we visualize median acres rather than mean acres due to very large operations that skew the mean high (see mean acres per operation in SI Figure ###). B. Distribution of farm size through time.
-
-```{r}
-############################################################
-# Acres per operation, median in 2017
-############################################################
-size <- c_sf %>% select(c(1,10:11,14:16))  %>% mutate(ave_apo = round(tot_acres/n_op))
-
-### Extract quantiles; use these to estimate quantiles, below!
-# Mean
-q <- size %>% filter(year == 2017) %>% 
-  pull(acres_per_op) %>% # switch ave_apo & acres_per_op
-  quantile(probs = seq(0, 1, length.out = 7), na.rm = T) %>%
-  as.vector() # to remove names of quantiles, so idx below is numeric
-
-### What are the quantiles?
-quantiles_med <- c(0,50,75,100,150,300,40000) # Median
-
-### Create custom labels
-labels_med <- c("0 – 50 acres",      "50 – 75 acres",    "75 – 100 acres",    "100 – 150 acres",   "150 – 300 acres",  "> 300 acres") # Median
-
-### Create a new variable with the quantiles
-# Mean
-df <- size %>%
-  mutate(mean_quantiles = cut(ave_apo,
-                               breaks = quantiles_med,
-                               labels = labels_med,
-                               include.lowest = T)) %>% 
-  filter(year == 2017) %>% 
-  filter(!is.na(ave_apo)) 
-
-### PLOT
-### Create a new variable with the quantiles
-# Median
-df_op <- size %>%
-  mutate(median_quantiles = cut(acres_per_op,
-                               breaks = quantiles_med,
-                               labels = labels_med,
-                               include.lowest = T)) %>% 
-  filter(year == 2017) %>% 
-  filter(!is.na(acres_per_op)) 
-
-### PLOT
-# Median acres
-median_acres <- ggplot(data = df_op) +
-  geom_sf(mapping = aes(fill = median_quantiles),color = "transparent",size = 0.01) +
-  geom_sf(data = states, fill = "transparent", color = "dark gray") +
-  scale_fill_brewer(palette = "BuPu") +
-  theme_map() +
-    theme(panel.grid.major = element_line(colour = "white"), 
-          legend.position="bottom",
-          legend.key.size = unit(2, 'mm')) 
-
-############################################################
-# Acres per operation, median in 2017
-############################################################
-# Distribution of farm size (box and whisker plot)
-c$year <- as.factor(c$year)
-bw <- c %>% filter(year != 1997) %>% select(c(2,6:8)) %>% mutate(ave = tot_acres/n_op) %>% select(c(1,4:5)) %>% pivot_longer(!year, names_to = "category", values_to = "acres")
-
-bw$category <- factor(bw$category, levels = c("ave", "acres_per_op"))
-colors=c("#DDCC77", "#CC6677")
-names(colors) <- levels(bw$category)
-
-#bw$alpha <- as.factor(ifelse(bw$category == "ave", 0.7, 0.7))
-
-# put  median and average acres per operation next to each other in box and whisker!
-dist_acres <- ggplot(bw, aes(x=year, y=acres, fill=category)) +
-  geom_boxplot(outlier.alpha = 0.1) +
-  project_theme + 
-  theme(legend.position = "none") +
-  labs(title = "", y = "Acres per Operation", x = "") +
-  scale_fill_manual(name ="year",  values=colors) +
-  #scale_alpha_manual(values = c("0.7"=0.7), guide='none') +
-  coord_cartesian(ylim = c(0, 1200)) 
-
-# Build panel plots!
-# (A.) median acres, (B.) distribution of acreage
-ggarrange(median_acres, dist_acres, labels = c("A.", "B."), ncol = 2, font.label = list(size = 8))
-ggsave("./viz/Figure10.png", dpi = 400, width = 200, height = 80, units = "mm")
-
-# average farm size
-c %>% filter(year == 2017) %>% select(c(6:8)) %>% mutate(ave = tot_acres/n_op) %>% drop_na()  %>%  summarise(median = mean(acres_per_op),
-                                                                                                  mean = mean(ave))
-
-```
-
-### Figure 9: A. The difference in the share of agricultural employment in the workforce from 1969 to 2019; where red, counties employ fewer proprietors, partners, and hired laborers in agriculture now than in 1969. For example, in Cache County, UT, 13.3 out of every 100 workers were employed in agriculture in 1969; in 2019, however, only 1.9 were, resulting in a -11.5 difference in agricultural workers per 100 county workers over time. Data: US BEA.
-```{r}
-# Farm employment as percentage of total county employment
-# county-level, in most recent year (sf/ggplot())
-fc <- bea %>% filter(GEOID %in% counties$GEOID) %>% select(c(1:2,38:39,44:45)) 
-fc$farmempl <- as.numeric(apply(fc[c(5:6)],1,paste_noNA))
-fc$totjobs <- as.numeric(apply(fc[c(3:4)],1,paste_noNA))
-
-fc <- fc %>% mutate(prop_farm = farmempl/totjobs*100) %>% select(1:2,7:9)
-
-###################################################################
-# Difference between 2019 and 1969
-###################################################################
-fd <- fc %>% filter(YEAR == 1969 | YEAR == 2019) %>% select(c(1,2,5)) %>%  group_by(GEOID) %>% summarise(diff = diff(prop_farm))
-
-fd_sf <- merge(counties, fd, by = "GEOID")
-glimpse(fd_sf)
-
-# Pull quantiles
-q<- fd_sf %>%
-  pull(diff) %>%
-  quantile(probs = seq(0, 1, length.out = 8), na.rm = T) %>%
-  as.vector() 
-
-quantiles <- c(-51,-20,-15,-10,-5,-2.5,0,17)
-labels <- c("< -20",      "-20 - -15",    "-15 - -10",    "-10 - -5",   "-5 - -2.5",  "-2.5 - 0", "> 0")
-
-# Map ag contribution to GDP
-fd_sf %>%
-  mutate(quantiles = cut(diff,
-                               breaks = quantiles,
-                               labels = labels,
-                               include.lowest = T)) %>% 
-  filter(!is.na(diff)) %>% 
-ggplot(.) +
-  geom_sf(aes(fill = quantiles), color = "transparent") +
-  geom_sf(data = states, fill = "transparent", color = "dark gray") +
-   theme_map() +
-    theme(panel.grid.major = element_line(colour = "white"), 
-          legend.position="bottom",
-          legend.key.size = unit(2, 'mm')) +
-  scale_fill_manual(values = c("#67001F", "#B2182B", "#D6604D", "#F4A582", "#FDDBC7", "#fff1e8","#92C5DE")) +
-  theme(panel.grid.major = element_line(colour = "white")) + 
-  ggsave('./viz/Figure9.jpeg', width = 6, height = 4, dpi = 300)
-```
 
 
