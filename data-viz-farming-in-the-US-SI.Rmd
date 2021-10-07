@@ -627,8 +627,94 @@ ggsave("./viz/SI-Figure7.png", dpi = 400, width = 220, height = 120, units = "mm
 
 Change in most expensive inputs to agriculture. Data: USDA ERS, 2021c.
 ```{r}
-# Need code from EB
+hist <- readRDS("./data/hist_cws.RDS")
+recent <- readRDS("./data/recent_cws.RDS")
+
+build_time_series <- function(vars) {
+  
+ his <- hist %>% filter(ITEM == vars[[1]]) %>% select(YEAR, VALUE, ITEM, CROP)
+ rec <- recent %>% filter(REGION_ID == 10, ITEM == vars[[2]]) %>% select(YEAR, VALUE, ITEM, CROP)
+ 
+ fullts <- rbind.data.frame(his, rec)
+ 
+ return(fullts)
+
+}
+
+varlist <- list(
+  # Variable cash expenses
+  c("Seed", "Seed"),
+  c("Fertilizer, lime, and gypsum", "Fertilizer"),
+  c("Chemicals", "Chemicals"),
+  c("Custom operations", "Custom services"), # cost of custom operations, technical services and commercial drying
+  c("Fuel, lube, and electricity", "Fuel, lube, and electricity"),
+  c("Repairs", "Repairs"),
+  c("Hired labor", "Hired labor"),
+  c("Other variable cash expenses", "Purchased irrigation water"), # cost of purchased irrigation water
+  # Misc
+  c("Interest", "Interest on operating capital"), # Check two interest categories
+  c("Taxes and insurance", "Taxes and insurance"),
+  # Economic (full ownership costs) 
+  c("Land", "Opportunity cost of land"),
+  c("Unpaid labor", "Opportunity cost of unpaid labor"),
+  c( "Other nonland capital" , "Interest on operating inputs"),
+  c("Capital replacement", "Capital recovery of machinery and equipment"),   
+  c("Operating capital", "")) # unsure here
+
+vn <- c("Seed", "Fertilizer", "Chemicals", "Custom services",
+        "Fuel", "Repairs", "Hired labor", "Irrigation water", "Interest", "Taxes and insurance",
+        "Land", "Unpaid labor", "Remove", "Capital replacement", "Remove")
+
+all_exp <- list()
+
+for (v in 1:length(varlist)) {
+  
+  df <- build_time_series(varlist[[v]])
+  df$VARS <- vn[[v]]
+  
+  all_exp[[v]] <- df
+
+}
+
+all_exp <- do.call(rbind.data.frame, all_exp) 
+all_exp <- all_exp %>% filter(!VARS %in% c("Remove"))
+
+adj <- read.csv("./data/adjustment.csv") %>% filter(Period == "YEAR") %>%
+  select(Year, Value)
+colnames(adj) <- c("YEAR", "PRICE_ADJ")
+
+pxnviz <- merge(all_exp, adj, by = "YEAR" , all = T)
+pxnviz$VALUE_ADJ <- (pxnviz$VALUE * pxnviz$PRICE_ADJ)/100
+
+all_exp <- pxnviz %>% filter(!is.na(VALUE_ADJ))
+all_exp$OG_VALUE <- all_exp$VALUE
+all_exp$VALUE <- all_exp$VALUE_ADJ # lazy and don't want to rewrite code below
+
+max <- all_exp %>%
+  group_by(YEAR, VARS) %>%
+  summarize(AVG_EXP = mean(VALUE, na.rm=T)) %>%
+  filter(YEAR == 2020) %>%
+  arrange(VARS)
+
+min <- all_exp %>%
+  group_by(YEAR, VARS) %>%
+  summarize(AVG_EXP = mean(VALUE, na.rm=T)) %>%
+  filter(YEAR == 1990) %>%
+  arrange(VARS)
+
+max$DELTA <- max$AVG_EXP - min$AVG_EXP
+
+max %>%
+  ggplot(.) +
+  geom_bar(aes(x = reorder(VARS, DELTA), y = DELTA ), stat = "identity") +
+  project_theme +
+  coord_flip() +
+  labs(x = "", y = "$/acre", title = "Change in expenditures from 1990 to 2020") 
+
+ggsave("./viz/SI-Figure8.png", dpi = 400, width = 200, height = 80, units = "mm")
+
 ```
+
 
 
 ### **SI Figure 9**: 
@@ -649,10 +735,34 @@ bea %>% select(c(1:3,11,23)) %>% filter(GeoName == "United States") %>% mutate(p
 
 National Expenditure on inputs to agricultural production. Data: USDA ERS, 2021c.
 ```{r}
-# Need code from EB
+prop <- all_exp %>% select(-c(ITEM)) %>% pivot_wider(names_from = VARS, values_from = VALUE)
+prop$SUM <- rowSums(prop[3:ncol(prop)])
+prop$Seed <- prop$Seed/prop$SUM
+prop$Fertilizer <- prop$Fertilizer/prop$SUM
+prop$Chemicals <- prop$Chemicals/prop$SUM
+prop$`Custom services` <- prop$`Custom services`/prop$SUM
+prop$Fuel <- prop$Fuel/prop$SUM
+prop$Repairs <- prop$Repairs/prop$SUM
+prop$`Hired labor` <- prop$`Hired labor`/prop$SUM
+prop$`Irrigation water` <- prop$`Irrigation water`/prop$SUM
+prop$Interest <- prop$Interest/prop$SUM
+prop$`Taxes and insurance` <- prop$`Taxes and insurance`/prop$SUM
+prop$Land <- prop$Land/prop$SUM
+prop$`Unpaid labor` <- prop$`Unpaid labor`/prop$SUM
+prop$`Capital replacement` <- prop$`Capital replacement`/prop$SUM
+
+library(viridis)
+library(RColorBrewer)
+
+myColors <- c(brewer.pal(12, "Set3"), "dark blue")
+ggplot(all_exp %>% filter(YEAR %in% seq(1990, 2020, by = 1))) +
+  geom_bar(aes(fill = VARS, y = VALUE, x = YEAR), position = "stack", stat = "identity") +
+  project_theme +
+  labs(x = "", y = "$/acre", fill = "") + facet_wrap(~CROP) +
+  scale_fill_manual(name = "", values = myColors)
+
+ggsave("./viz/SI-Figure10.png", dpi = 400, width = 200, height = 100, units = "mm")
 ```
-
-
 
 ### **SI Figure 11**: 
 
