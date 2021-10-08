@@ -1,0 +1,107 @@
+---
+title: "US Commodity Crops"
+author: "Dr. Emily Burchfield"
+date: "Last updated: `r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  html_document:
+    theme: flatly
+    toc: yes
+    toc_float: true
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = T,
+                      message=F, warning=F)
+library(tidyverse)
+
+```
+
+
+Data downloaded from [this page](https://www.ers.usda.gov/data-products/commodity-costs-and-returns/commodity-costs-and-returns).
+
+* Recent returns for corn, wheat, soy
+* Historical returns for corn, wheat, soy
+
+Documentation for the dataset can be found [here](https://www.ers.usda.gov/data-products/commodity-costs-and-returns/documentation/):
+
+* based on the actual costs incurred by producers
+* The costs and returns of all participants in the production process—including farm operators, landlords, contractors, and contractees—are included in the account. For this reason, the accounts are often referred to as "sector accounts," representing the costs of and returns to all resources used in the production sector of each commodity.
+* The accounts include only costs incurred in the production of each crop commodity, excluding costs for marketing and storage. Returns above operating and total costs are computed by valuing production at the end of the production period, using a harvest-period price. However, producers often delay sales and store commodities with the expectation that the price in later months will exceed the harvest-period price plus the costs associated with carrying the crop inventory. This means that the estimates of returns above operating and total costs likely understate those actually received by producers. Marketing costs and returns are included in the livestock accounts where production is typically not stored for a significant period before being marketed. The estimated returns for the crop commodities also exclude marketing loan benefits, which have been substantial for several commodities during years of low crop prices.
+
+Costs includes: seed, fertilizer, manure, chemicals, fuel, replacement, nonland capital, repairs, capital recovery, paid adn unpaid labor, land rent, operating capital, general farm overhead, taxes adn insurance.
+
+Returns are above operating costs, above total costs listed
+
+```{r eval=F}
+# load and clean recent data:
+cn <- c("COMM", "COMM_ID", "CAT", "CAT_ID", "ITEM", "ITEM2", "ITEM_ID", "UNITS", "UNITS_ABR", "UNITS_ID", "REGION", "REGION_ID", "COUNTRY", "COUNTRY_ID", "YEAR", "VALUE", 
+        "SURVEY_BASE_YEAR", "NOTE", "ORDER", "SIZE", "SIZE_ID")
+
+cornr <- read.csv("./data/cornr.csv") 
+colnames(cornr) <- cn
+cornr <- cornr %>% select(-c(SIZE, NOTE, ORDER, SIZE_ID))
+cornr$YEAR <- as.numeric(cornr$YEAR)
+cornr$CROP <- "Corn"
+
+soyr <- read.csv("./data/soyr.csv")
+colnames(soyr) <- cn
+soyr <- soyr %>% select(-c(SIZE, NOTE, ORDER, SIZE_ID))
+soyr$YEAR <- as.numeric(soyr$YEAR)
+soyr$CROP <- "Soy"
+
+wheatr <- read.csv("./data/wr.csv")
+colnames(wheatr) <- cn
+wheatr <- wheatr %>% select(-c(SIZE, NOTE, ORDER, SIZE_ID))
+wheatr$YEAR <- as.numeric(wheatr$YEAR)
+wheatr$CROP <- "Wheat"
+
+# load and clean historical data:
+cornh <- read.csv("./data/cornh.csv") 
+colnames(cornh) <- c("ITEM", 1975:1995)
+cornh <- cornh[1:22]
+cornh <- cornh %>% pivot_longer(cornh, cols = 2:22, names_to = "YEAR") %>% distinct()
+colnames(cornh) <- c("ITEM", "YEAR", "VALUE")
+cornh$ITEM <- trimws(cornh$ITEM)
+cornh$YEAR <- as.numeric(cornh$YEAR)
+cornh$CROP <- "Corn"
+
+soyh <- read.csv("./data/soyh.csv") 
+colnames(soyh) <- c("ITEM", 1975:1995)
+soyh <- soyh[1:22]
+soyh <- soyh %>% pivot_longer(soyh, cols = 2:22, names_to = "YEAR") %>% distinct()
+colnames(soyh) <- c("ITEM", "YEAR", "VALUE")
+soyh$ITEM <- trimws(soyh$ITEM)
+soyh$YEAR <- as.numeric(soyh$YEAR)
+soyh$CROP <- "Soy"
+
+wh <- read.csv("./data/wh1.csv") 
+colnames(wh) <- c("ITEM", 1975:1997)
+wh <- wh[1:22]
+wh <- wh %>% pivot_longer(wh, cols = 2:22, names_to = "YEAR") %>% distinct()
+colnames(wh) <- c("ITEM", "YEAR", "VALUE")
+wh$ITEM <- trimws(wh$ITEM)
+wh$YEAR <- as.numeric(wh$YEAR)
+wh$CROP <- "Wheat"
+
+recent <- rbind.data.frame(cornr, soyr, wheatr)
+n <- recent %>% group_by(ITEM) %>% count() %>% filter(n < 540)
+recent$ITEM[recent$ITEM == "Custom services Â² "] <- "Custom services" 
+recent$ITEM[recent$ITEM == "Other variable expenses Â² " ] <- "Other variable expenses"
+recent$ITEM[recent$ITEM == "Fertilizer Â¹ " ] <- "Fertilizer"
+
+saveRDS(recent, "./out/recent_cws.RDS")
+
+hist <- rbind.data.frame(cornh, soyh, wh)
+n <- hist %>% group_by(ITEM) %>% count() %>% filter(n < 63)
+hist$ITEM[hist$ITEM == "Custom operations  1/"] <- "Custom operations"
+hist$ITEM[hist$ITEM == "Fertilizer, lime and gypsum"] <- "Fertilizer, lime, and gypsum"   
+hist$ITEM[hist$ITEM == "Other variable cash expenses  1/"  ] <- "Other variable cash expenses"  
+hist$ITEM[hist$ITEM == "Other variable cash expenses  2/"  ] <- "Other variable cash expenses"  
+hist$ITEM[hist$ITEM == "Custom operations  1/"] <- "Custom operations"
+hist$ITEM[hist$ITEM == "Residual returns to management and risk"] <- "Residual returns to risk and management"
+hist$ITEM[hist$ITEM == "Total, economic costs"] <- "Total, economic (full ownership) costs" 
+
+hist <- hist %>% filter(ITEM != "")
+saveRDS(hist, "./out/hist_cws.RDS")
+```
