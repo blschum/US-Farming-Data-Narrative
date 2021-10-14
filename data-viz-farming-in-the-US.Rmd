@@ -501,9 +501,9 @@ sub <- dat %>%
 
 gov_port <- ggplot(sub, aes(x = YEAR)) +
   
-  geom_bar(aes(y=prop), fill = "#44AA99", stat="identity") +
-  
-  geom_line(aes(y = (net_income*1000)/175000000000), color = "#117733", size = 1.5) + # devide by 1 M
+  geom_bar(aes(y=prop, fill = "#44AA99"), stat="identity") +
+  scale_fill_manual(name="",labels = c("Proportion Net Income from Government Payments"), values = c("#44AA99")) +
+  geom_line(aes(y = (net_income*1000)/175000000000, color = "#117733"), size = 1.5) + # devide by 1 M
   labs(x = "") +
   scale_y_continuous(breaks=seq(0,1.0,0.25),
     
@@ -512,9 +512,11 @@ gov_port <- ggplot(sub, aes(x = YEAR)) +
     
     # Add a second axis and specify its features
     sec.axis = sec_axis(~.*175000000000, breaks = c(50000000000,100000000000,150000000000,200000000000),
-                        labels=c("$50B", "$100B", "$150B","$200B"), name="Net Income (Current $) Farm Sector") 
+                        labels=c("$50B", "$100B", "$150B","$200B"), name="Current USD$") 
   ) +
-  project_theme
+  scale_color_manual(name="",labels = c("Net Income Farm Sector"), values = c("#117733")) +
+  project_theme +
+  theme(legend.position="bottom") 
 
 # Build panel plots!
 # (A.) net income 1969 (adjusted), (B.) net income 2019
