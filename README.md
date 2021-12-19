@@ -1,2 +1,2 @@
 # US-Farming-Data-Narrative
-Data prep and visualizations for Farming in the United States in preparation for *Agriculture & Human Values*.
+Data prep and visualizations for 'The State of US Farm Operator Livelihoods' under review at *Frontiers in Sustainable Food Systems*.
