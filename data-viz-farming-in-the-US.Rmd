@@ -549,7 +549,7 @@ nc <- dat %>% filter(GEOID %in% counties$GEOID) %>% filter(year == 2017 | year =
 
 # STATS
 nc %>% filter(year == 2017, net_income < 0) %>% arrange(net_income_adj) # 441/3034 reporting counties
-nc %>% filter(year == 2002, net_income < 0) %>% arrange(net_income_adj) #413/3034
+nc %>% filter(year == 2002, net_income < 0) %>% arrange(net_income_adj) #413/3032
 
 nc_sf <- merge(counties, nc, by = "GEOID")
 
