@@ -42,7 +42,7 @@ gsub(", " ,sep, toString(x[!is.na(x) & x!="" & x!="NA"] ) ) }
 
 
 ### Pull in theme for maps
-```{r}
+```{r message = FALSE, warning = FALSE}
 theme_map <- function(...) {
   theme_minimal() +
   theme(
@@ -78,7 +78,7 @@ theme_map <- function(...) {
 ### **SI Figure 1**: 
 
 #### Average acres per operation in 2017, measured as the total number of agricultural acres in a county divided by the total number of operations. Data: USDA NASS QuickStats.
-```{r}
+```{r message = FALSE, warning = FALSE}
 ############################################################
 # Acres per operation, mean in 2017
 ############################################################
@@ -119,14 +119,14 @@ ggplot(data = df) +
           legend.position="right",
           legend.key.size = unit(4, 'mm'))
 
-  ggsave('./viz/SI-Figure1.png', dpi = 400, width = 110, height = 60, units = "mm", bg = "white")
-  ggsave('./figs/SI-Figure1.jpg', dpi = 300, width = 110, height = 60, units = "mm", bg = "white")
+  ggsave('./visualizations/PNG/SI-Figure1.png', dpi = 400, width = 110, height = 60, units = "mm", bg = "white")
+  ggsave('./visualizations/JPEG/SI-Figure1.jpg', dpi = 300, width = 110, height = 60, units = "mm", bg = "white")
 ```
 
 ### **SI Figure 2**: 
 
 #### The agricultural contribution to a county’s GDP in 2019. Data: US BEA. 
-```{r}
+```{r message = FALSE, warning = FALSE}
 # county-level, in most recent year
 g <- bea %>% filter(GEOID %in% counties$GEOID, YEAR == 2019) %>% mutate(contrib = current_GDP_ag / current_GDP * 100) %>% filter(!is.na(contrib))
 
@@ -159,13 +159,13 @@ ggplot(.) +
           legend.key.size = unit(4, 'mm')) +
   scale_fill_manual(values=c("#fef6b5","#ffdd9a","#ffc285","#ffa679","#fa8a76","#f16d7a","#e15383"),name="") 
   
-  ggsave('./viz/SI-Figure2.png', dpi = 400, width = 110, height = 60, units = "mm", bg = "white")
-  ggsave('./figs/SI-Figure2.jpg', dpi = 300, width = 110, height = 60, units = "mm", bg = "white")
+  ggsave('./visualizations/PNG/SI-Figure2.png', dpi = 400, width = 110, height = 60, units = "mm", bg = "white")
+  ggsave('./visualizations/JPEG/SI-Figure2.jpg', dpi = 300, width = 110, height = 60, units = "mm", bg = "white")
 ```
 ### **SI Figure 3**: 
 
 #### The proportion of all workers engaged in the direct production of agricultural commodities, livestock or crops (includes sole proprietors, partners, and hired laborers) in 2019. Data: US BEA
-```{r}
+```{r message = FALSE, warning = FALSE}
 # Farm employment as percentage of total county employment
 # county-level, in most recent year (sf/ggplot())
 fc <- bea %>% filter(GEOID %in% counties$GEOID) %>% select(c(1:2,38:39,44:45)) 
@@ -202,8 +202,8 @@ ggplot(.) +
           legend.key.size = unit(4, 'mm')) +
   scale_fill_manual(values=c("#f9ddda","#f2b9c4","#e597b9","#ce78b3","#ad5fad","#834ba0","#573b88"),name="") 
 
-  ggsave('./viz/SI-Figure3.png', dpi = 400, width = 110, height = 60, units = "mm", bg = "white")
-  ggsave('./figs/SI-Figure3.jpg', dpi = 300, width = 110, height = 60, units = "mm", bg = "white") 
+  ggsave('./visualizations/PNG/SI-Figure3.png', dpi = 400, width = 110, height = 60, units = "mm", bg = "white")
+  ggsave('./visualizations/JPEG/SI-Figure3.jpg', dpi = 300, width = 110, height = 60, units = "mm", bg = "white") 
   
 # labor expense statistics
 coa_stand <- readRDS("./data/COA-vars.RDS")
@@ -225,7 +225,7 @@ heartland <- labor_exp %>% filter(FRR_NAME == "Heartland")
 ### **SI Figure 4**: 
 
 #### (A.) Average age of primary operators in 2017. (B.) Change in average age between 1997 and 2017; where red, average age was less in 2017 than 1997. Data: USDA NASS QuickStats.
-```{r}
+```{r message = FALSE, warning = FALSE}
 ############################################################
 # Average Age
 ############################################################
@@ -308,38 +308,57 @@ age_diff <- ggplot() +
 # (A.) % full owners, (B.) % tenants
 library(ggpubr)
 ggarrange(ave_age, age_diff, labels = c("A.", "B."), ncol = 2, font.label = list(size = 8))
-ggsave("./viz/SI-Figure4.png", dpi = 400, units = "mm", width = 220, height = 60, bg = "white")
-ggsave("./figs/SI-Figure4.jpg", dpi = 300, units = "mm", width = 220, height = 60, bg = "white")
+ggsave("./visualizations/PNG/SI-Figure4.png", dpi = 400, units = "mm", width = 220, height = 60, bg = "white")
+ggsave("./visualizations/JPEG/SI-Figure4.jpg", dpi = 300, units = "mm", width = 220, height = 60, bg = "white")
 ```
 
 ### **SI Figure 5**: 
 
 American Indian or Alaska Native .......................................46,210
+
 Asian ...................................................................................16,978
+
 Black or African American ..................................................38,447
+
 Native Hawaiian or Other Pacific Islander ...........................2,306
+
 White ...................................................................................2,614,526
+
 More than one race reported ...............................................21,986
 
-Hispanic principal producers' reported race:::
+
+**Hispanic principal producers' reported race:::**
 American Indian or Alaska Native .......................................2,077
+
 Asian ...................................................................................861
+
 Black or African American ...................................................879
+
 Native Hawaiian or Other Pacific Islander ...........................439
+
 White ...................................................................................84,434
+
 More than one race reported ...............................................1,654
 
-Principle Producers by race & hispanic origin (all races)
+
+**Principle Producers by race & hispanic origin (all races):**
+
 American Indian or Alaska Native .......................................44133
+
 Asian ...................................................................................16117
+
 Black or African American ...................................................37568
+
 Native Hawaiian or Other Pacific Islander ...........................1867
+
 White ...................................................................................2530092
+
 More than one race reported ...............................................20332
+
 Hispanic (all races) ...............................................90344
 
 #### Proportional bar charts showing (A.) the area operated by principal operators by their reported race, and (B.) operations by principal operator’s race; y-axis limits at proportion = 0.08 to show distinctions between races (ie. white operators represent over 90% of all operators and farm over 90% of all operated acres). Data: USDA NASS QuickStats.
-```{r}
+```{r message = FALSE, warning = FALSE}
 re <- read.csv("./data/race-ethnicity.csv")
 
 re$RACE <- factor(re$RACE, levels = c("White", "More", "Hawaiian", "Black", "Asian", "American Indian", "Hispanic"))
@@ -387,8 +406,8 @@ ggplot(.) +
 # Build panel plots!
 ggarrange(race_operators, race_area, race_operations, labels = c("A.", "B.", "C."), ncol = 1, nrow = 3, common.legend = TRUE, legend = "bottom",
           font.label = list(size = 8))
-ggsave("./viz/SI-Figure5.png", dpi = 400, width = 150, height = 220, units = "mm", bg = "white")
-ggsave("./figs/SI-Figure5.jpg", dpi = 300, width = 150, height = 220, units = "mm", bg = "white")
+ggsave("./visualizations/PNG/SI-Figure5.png", dpi = 400, width = 150, height = 220, units = "mm", bg = "white")
+ggsave("./visualizations/JPEG/SI-Figure5.jpg", dpi = 300, width = 150, height = 220, units = "mm", bg = "white")
 # race statistics
 sum <- re %>% filter(YEAR == 2017) %>% group_by(TYPE) %>% summarise(total = sum(VALUE))
 
@@ -402,7 +421,7 @@ sum <- re %>% filter(YEAR == 2017) %>% group_by(TYPE) %>% summarise(total = sum(
 ### **SI Figure 6**: 
 
 #### (A.) Percent agricultural acres operated by POC and Hispanic-identifying  (i.e., Black, American Indian or Native Alaskan, Multi-racial, Asian, Native Hawaiian or other Pacific Islander) principal operators in 2017, and (B.) Percent of all US farm operations operated by POC and Hispanic-identifying principal operators in 2017. Data: USDA NASS QuickStats
-```{r}
+```{r message = FALSE, warning = FALSE}
 ############################################################
 # Percent acres operated by folx identifying as black, hispanic, and white principal operators
 ############################################################
@@ -499,14 +518,14 @@ POC_operations <- ggplot(data = df) +
 # (A.) Percent POC operated acres, (B.) Percent POC-run operations
 library(ggpubr)
 ggarrange(POC_acres, POC_operations, labels = c("A.", "B."), ncol = 2, font.label = list(size = 8))
-ggsave("./viz/SI-Figure6.png", dpi = 400, units = "mm", width = 220, height = 60, bg = "white")
-ggsave("./figs/SI-Figure6.jpg", dpi = 300, units = "mm", width = 220, height = 60, bg = "white")
+ggsave("./visualizations/PNG/SI-Figure6.png", dpi = 400, units = "mm", width = 220, height = 60, bg = "white")
+ggsave("./visualizations/JPEG/SI-Figure6.jpg", dpi = 300, units = "mm", width = 220, height = 60, bg = "white")
 ```
 
 ### **SI Figure 7**: 
 
 #### Percent acreage operated by (A.) Black, (B.) Hispanic, (C.) white, and (D.) female identifying primary operators in 2017. Data: USDA QuickStats, 2017 COA.
-```{r}
+```{r message = FALSE, warning = FALSE}
 ############################################################
 # Percent acres operated by principal operators identifying as females
 ############################################################
@@ -624,14 +643,14 @@ white_acres <- ggplot(data = df) +
 # (A.) Black, (B.) Hispanic, (C.) white and (D.) female operated acreage
 library(ggpubr)
 ggarrange(black_acres, hisp_acres, white_acres, female_acres, labels = c("A.", "B.", "C.", "D."), ncol = 2, nrow = 2, font.label = list(size = 8))
-ggsave("./viz/SI-Figure7.png", dpi = 400, width = 220, height = 120, units = "mm", bg = "white")
-ggsave("./figs/SI-Figure7.jpg", dpi = 300, width = 220, height = 120, units = "mm", bg = "white")
+ggsave("./visualizations/PNG/SI-Figure7.png", dpi = 400, width = 220, height = 120, units = "mm", bg = "white")
+ggsave("./visualizations/JPEG/SI-Figure7.jpg", dpi = 300, width = 220, height = 120, units = "mm", bg = "white")
 ```
 
 ### **SI Figure 8**:
 
 Change in most expensive inputs to agriculture. Data: USDA ERS, 2021c.
-```{r}
+```{r message = FALSE, warning = FALSE}
 hist <- readRDS("./data/hist_cws.RDS")
 recent <- readRDS("./data/recent_cws.RDS")
 
@@ -716,8 +735,8 @@ max %>%
   coord_flip() +
   labs(x = "", y = "$/acre", title = "Change in expenditures from 1990 to 2020") 
 
-ggsave("./viz/SI-Figure8.png", dpi = 400, width = 200, height = 80, units = "mm")
-ggsave("./figs/SI-Figure8.jpg", dpi = 300, width = 200, height = 80, units = "mm")
+ggsave("./visualizations/PNG/SI-Figure8.png", dpi = 400, width = 200, height = 80, units = "mm")
+ggsave("./visualizations/JPEG/SI-Figure8.jpg", dpi = 300, width = 200, height = 80, units = "mm")
 ```
 
 
@@ -725,7 +744,7 @@ ggsave("./figs/SI-Figure8.jpg", dpi = 300, width = 200, height = 80, units = "mm
 ### **SI Figure 9**: 
 
 #### Share of gross farm cash receipts spent on all agricultural inputs. During the height of the Farm Crisis of the 1980s, for instance, US farmers spent over 90% of their gross earnings (ie. earnings before subtracting production expenses) on inputs to agriculture. 
-```{r}
+```{r message = FALSE, warning = FALSE}
 bea$YEAR<-as.numeric(bea$YEAR) 
 bea %>% select(c(1:3,11,23)) %>% filter(GeoName == "United States") %>% mutate(prod_exp = (prod_exp)/cash_income*100) %>% 
   ggplot(.) +
@@ -733,14 +752,14 @@ bea %>% select(c(1:3,11,23)) %>% filter(GeoName == "United States") %>% mutate(p
   project_theme +
   labs(title = "", color = "", y = "Share of Earnings (%) Spent on Inputs", x = "") 
 
-  ggsave("./viz/SI-Figure9.png", dpi = 400, width = 100, height = 80, units = "mm")
-  ggsave("./figs/SI-Figure9.jpg", dpi = 300, width = 100, height = 80, units = "mm")
+  ggsave("./visualizations/PNG/SI-Figure9.png", dpi = 400, width = 100, height = 80, units = "mm")
+  ggsave("./visualizations/JPEG/SI-Figure9.jpg", dpi = 300, width = 100, height = 80, units = "mm")
 ```
 
 ### **SI Figure 10**:
 
 National Expenditure on inputs to agricultural production. Data: USDA ERS, 2021c.
-```{r}
+```{r message = FALSE, warning = FALSE}
 prop <- all_exp %>% select(-c(ITEM)) %>% pivot_wider(names_from = VARS, values_from = VALUE)
 prop$SUM <- rowSums(prop[3:ncol(prop)])
 prop$Seed <- prop$Seed/prop$SUM
@@ -767,14 +786,14 @@ ggplot(all_exp %>% filter(YEAR %in% seq(1990, 2020, by = 1))) +
   labs(x = "", y = "$/acre", fill = "") + facet_wrap(~CROP) +
   scale_fill_manual(name = "", values = myColors)
 
-ggsave("./viz/SI-Figure10.png", dpi = 400, width = 200, height = 100, units = "mm")
-ggsave("./figs/SI-Figure10.jpg", dpi = 300, width = 200, height = 100, units = "mm")
+ggsave("./visualizations/PNG/SI-Figure10.png", dpi = 400, width = 200, height = 100, units = "mm")
+ggsave("./visualizations/JPEG/SI-Figure10.jpg", dpi = 300, width = 200, height = 100, units = "mm")
 ```
 
 ### **SI Figure 11**: 
 
 #### Agricultural input expenditure as a proportion of gross farm cash receipts in 2017; where values are > 100% county input expenditures surpassed gross farm earnings. For example, in Chattahoochee, GA expenditure on inputs surpassed gross earnings for the county by just under 1000%. Data: US BEA. 
-```{r}
+```{r message = FALSE, warning = FALSE}
 # county-level, in most recent year
 g <- bea %>% select(c(1:3,11,23)) %>% mutate(perc = prod_exp/cash_income*100) %>% filter(!is.na(perc),                                                                                   YEAR == 2019) 
 g_sf <- merge(counties, g, by = "GEOID")
@@ -803,13 +822,14 @@ ggplot(.) +
           legend.position="right",
           legend.key.size = unit(4, 'mm'))
 
-  ggsave('./viz/SI-Figure11.png', dpi = 400, width = 110, height = 60, units = "mm", bg = "white")
-  ggsave('./figs/SI-Figure11.jpg', dpi = 300, width = 110, height = 60, units = "mm", bg = "white")
+  ggsave('./visualizations/PNG/SI-Figure11.png', dpi = 400, width = 110, height = 60, units = "mm", bg = "white")
+  ggsave('./visualizations/JPEG/SI-Figure11.jpg', dpi = 300, width = 110, height = 60, units = "mm", bg = "white")
 ```
+
 ### **SI Figure 12**: 
 
 #### Proportion of acres operated by tenancy status. Data: USDA NASS QuickStats.
-```{r}
+```{r message = FALSE, warning = FALSE}
 c %>%
   select(c(1:2,18:20)) %>% 
   pivot_longer(!c(1,2), names_to = "tenancy", values_to = "acres") %>% 
@@ -820,8 +840,8 @@ ggplot(.) +
   project_theme +
   theme(legend.position="bottom") +
   scale_x_continuous(breaks = c(1997, 2002, 2007, 2012, 2017)) 
-  ggsave("./viz/SI-Figure12.png", dpi = 400, width = 100, height = 80, units = "mm")
-  ggsave("./figs/SI-Figure12.jpg", dpi = 300, width = 100, height = 80, units = "mm")
+  ggsave("./visualizations/PNG/SI-Figure12.png", dpi = 400, width = 100, height = 80, units = "mm")
+  ggsave("./visualizations/JPEG/SI-Figure12.jpg", dpi = 300, width = 100, height = 80, units = "mm")
 
 # STATS
 # tenancy through time
@@ -849,7 +869,7 @@ z <- z %>% group_by(year) %>%
 ### **SI Figure 13**: 
 
 #### Agricultural real estate debt from 1969 to 2019, adjusted for inflation using the chain-type GDP deflator provided by the USDA ERS. Data: USDA ERS.
-```{r}
+```{r message = FALSE, warning = FALSE}
 # tidy data
 library(viridis)
 w <- read.csv("./data/ers-wealthstatdata.csv")
@@ -882,14 +902,14 @@ ggplot(.) +
         labels=c("$100B","$200B","$300B")) +
   theme(legend.position="bottom") 
 
-  ggsave("./viz/SI-Figure13.png", dpi = 400, width = 140, height = 80, units = "mm")
-  ggsave("./figs/SI-Figure13.jpg", dpi = 300, width = 140, height = 80, units = "mm")
+  ggsave("./visualizations/PNG/SI-Figure13.png", dpi = 400, width = 140, height = 80, units = "mm")
+  ggsave("./visualizations/JPEG/SI-Figure13.jpg", dpi = 300, width = 140, height = 80, units = "mm")
 ```
 
 ### **SI Figure 14**: 
 
 #### Agricultural non-real estate debt from 1969 to 2019, adjusted for inflation using the chain-type GDP deflator provided by the USDA ERS. Data: USDA ERS.
-```{r}
+```{r message = FALSE, warning = FALSE}
 debt %>%
   filter(variable %in% c("Non-real estate_Farm Credit System","Non-real estate_Farm Service Agency","Non-real estate_Individuals and others","Non-real estate_Commerical banks"),
          Year >= 1960) %>%
@@ -903,11 +923,14 @@ ggplot(.) +
         labels=c("$50B","$100B","$150B","$200B")) +
   theme(legend.position="bottom") 
 
-  ggsave("./viz/SI-Figure14.png", dpi = 400, width = 140, height = 80, units = "mm")
-  ggsave("figs/SI-Figure14.jpg", dpi = 300, width = 140, height = 80, units = "mm")
+  ggsave("./visualizations/PNG/SI-Figure14.png", dpi = 400, width = 140, height = 80, units = "mm")
+  ggsave("visualizations/JPEG/SI-Figure14.jpg", dpi = 300, width = 140, height = 80, units = "mm")
 ```
 
-```{r}
+### **SI Figure 15**: 
+
+#### Average realized net income of farmers from (A.) 1969-1973 and (B.) 2015-2019 (adjusted to 2019 dollars). Net income is defined as total cash receipts from all farms less production expenses and is analogous to USDA NASS measures of net cash farm income. We visualize BEA realized net income data because it dates back to 1969 while USDA NASS county-level data only dates back to 1997. Counties in which net income is negative (red) had average production expenses that surpassed total cash receipts. Over the period from 2015-2019, 28.9% of counties reported negative average net income compared to 26.4% in 2019 alone, while from 1969-1973, 0.9% of counties reported negative average net income compared to 2.3% in 1969 alone. Data: US BEAb.
+```{r message = FALSE, warning = FALSE}
 
 options(scipen = 100)
 library(blscrapeR) 
@@ -1009,7 +1032,7 @@ t <- i_sf %>%
 # Build panel plots!
 # (A.) net income 1969 (adjusted), (B.) net income 2019
 ggarrange(income_ave69, income_ave19, labels = c("A.", "B."), font.label = list(size = 8), common.legend = TRUE, legend = "right")
-ggsave("./viz/SIFigure15.png", dpi = 400, width = 220, height = 60, units = "mm", bg = "white")
-ggsave("./figs/SIFigure15.jpg", dpi = 300, width = 200, height = 60, units = "mm", bg = "white")
+ggsave("./visualizations/PNG/SIFigure15.png", dpi = 400, width = 220, height = 60, units = "mm", bg = "white")
+ggsave("./visualizations/JPEG/SIFigure15.jpg", dpi = 300, width = 200, height = 60, units = "mm", bg = "white")
 ```
 

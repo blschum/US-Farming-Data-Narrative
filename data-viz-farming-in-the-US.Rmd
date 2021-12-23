@@ -31,7 +31,7 @@ gsub(", " ,sep, toString(x[!is.na(x) & x!="" & x!="NA"] ) ) }
 
 
 ### Pull in theme for maps
-```{r}
+```{r warning = F, message = F}
 theme_map <- function(...) {
   theme_minimal() +
   theme(
@@ -66,7 +66,7 @@ theme_map <- function(...) {
 ### Figure 1: 
 
 The nine US Farm Resource Regions delineated by the USDA ERS (2000). 
-```{r}
+```{r warning = F, message = F}
 frr <- readRDS("./data/FRR.RDS") 
 
 frr <- st_as_sf(frr)
@@ -79,15 +79,15 @@ ggplot() +
     theme(panel.grid.major = element_line(colour = "white"), legend.position="right",
           legend.key.size = unit(3, 'mm'), legend.text = element_text(size = 7)) 
 
-ggsave('./viz/Figure1.png', dpi = 400, width = 110, height = 60, units = "mm", bg = "white")
-ggsave('./figs/Figure1.jpg', dpi = 300, width = 110, height = 60, units = "mm", bg = "white")
+ggsave('./visualizations/PNG/Figure1.png', dpi = 400, width = 110, height = 60, units = "mm", bg = "white")
+ggsave('./visualizations/JPEG/Figure1.jpg', dpi = 300, width = 110, height = 60, units = "mm", bg = "white")
 ```
 
 ### Figure 2. 
 
 (A.) US farms, land in farms, and average farm size from 1850 to 2017. The vertical line in 1978 reflects USDA-NASS implementation of adjustments for under-coverage. Data: Robert Hoppe, USDA ERS. (B.) Number of agricultural jobs from 1969 to 2019. Data: US BEA.
 
-```{r}
+```{r warning = F, message = F}
 # US land assets, historical data from Robert Hoppe at the USDA ERS
 
 land <- read.csv("./data/ERS-farmop.csv")
@@ -127,8 +127,8 @@ ggplot(.) +
 
 ggarrange(land_assets, employment, ncol = 2, labels = c('A.', 'B.'),
           font.label = list(size = 8))
-ggsave("./viz/Figure2.png", dpi = 400, width = 200, height = 80, units = "mm")
-ggsave("./figs/Figure2.jpg", dpi = 300, width = 200, height = 80, units = "mm")
+ggsave("./visualizations/PNG/Figure2.png", dpi = 400, width = 200, height = 80, units = "mm")
+ggsave("./visualizations/JPEG/Figure2.jpg", dpi = 300, width = 200, height = 80, units = "mm")
 
 # STATS
 # number of farm operations in 1935 and 2017
@@ -144,7 +144,7 @@ employ %>% filter(YEAR == 1983 | YEAR == 2017)
 ### Figure 3. 
 
 (A.) The average age of primary operators from 1940 to 2017. (B.) The number of US farms with primary operators identifying as Black (red), white (blue), and members of all other races (yellow) from 1900 to 2017. For scale, it is important to note that farms operated by Black operators and members of all other races are shown in hundred thousands, while white operated farms are shown in millions. (C.) Number of primary operators by reported gender, shown in hundred thousands; overlayed with percent female primary operators. The USDA began statistical adjustments for under coverage in 1997, reflected in the vertical change (dotted vertical line) in average age in 1997 from 54.3 (unadjusted) to 54.0 (adjusted). Data: Compiled by Robert Hoppe of the USDA Economic Research Service and shared with the authors.
-```{r}
+```{r warning = F, message = F}
 h <- read.csv("./data/historical-coa.csv")
 
 project_theme <- theme_bw() +
@@ -206,8 +206,8 @@ ggplot(.) +
 
 ggarrange(age, race2, sex, nrow = 3, labels = c('A.', 'B.', 'C.'),
           font.label = list(size = 8))
-ggsave("./viz/Figure3.png", dpi = 400, width = 150, height = 240, units = "mm")
-ggsave("./figs/Figure3.jpg", dpi = 300, width = 150, height = 240, units = "mm")
+ggsave("./visualizations/PNG/Figure3.png", dpi = 400, width = 150, height = 240, units = "mm")
+ggsave("./visualizations/JPEG/Figure3.jpg", dpi = 300, width = 150, height = 240, units = "mm")
 # Average Operator Age
 
 
@@ -231,7 +231,7 @@ f <- c %>% select(c(1:4,13,16)) %>%
 
 Percent primary operators identifying as (A.) Black, (B.) Hispanic, (C.) white, and (D.) female in 2017.  Data: USDA QuickStats, 2017 COA.
 
-```{r}
+```{r warning = F, message = F}
 # load data
 c <- readRDS("./data/contemp-coa.RDS")
 r <- readRDS("./data/coa-race.RDS")
@@ -374,8 +374,8 @@ white_operators <- ggplot(data = df) +
 # Build panel plots!
 # (A.) Black, (B.) Hispanic, (C.) white and (D.) female operators
 ggarrange(black_operators, hisp_operators, white_operators, female_operators, labels = c("A.", "B.", "C.", "D."), ncol = 2, nrow = 2, font.label = list(size = 8))
-ggsave("./viz/Figure4.png", dpi = 400, width = 220, height = 120, units = "mm", bg = "white")
-ggsave("./figs/Figure4.jpg", dpi = 300, width = 200, height = 120, units = "mm", bg = "white")
+ggsave("./visualizations/PNG/Figure4.png", dpi = 400, width = 220, height = 120, units = "mm", bg = "white")
+ggsave("./visualizations/JPEG/Figure4.jpg", dpi = 300, width = 200, height = 120, units = "mm", bg = "white")
 
 # STATS
 # Percent by POC, nationally
@@ -421,7 +421,7 @@ rs <- r %>% mutate(TOTAL = rowSums(.[7:13])) %>%
          PACIFIC_ISL = sum(PACIFIC_ISL)/TOTAL*100) %>% 
   arrange(-BLACK)
 
-head(rs,10)
+#head(rs,10)
 
 rs <- r %>% mutate(TOTAL = rowSums(.[7:13])) %>% 
   group_by(YEAR, STATE, TYPE) %>% 
@@ -437,7 +437,7 @@ rs <- r %>% mutate(TOTAL = rowSums(.[7:13])) %>%
          PACIFIC_ISL = sum(PACIFIC_ISL)/TOTAL*100) %>% 
   arrange(-HISPANIC)
 
-head(rs,10)
+#head(rs,10)
 
 rs <- r %>% mutate(TOTAL = rowSums(.[7:13])) %>% 
   group_by(YEAR, STATE, TYPE) %>% 
@@ -453,7 +453,7 @@ rs <- r %>% mutate(TOTAL = rowSums(.[7:13])) %>%
          PACIFIC_ISL = sum(PACIFIC_ISL)/TOTAL*100) %>% 
   arrange(-NATIVE_AMER)
 
-head(rs,10)
+#head(rs,10)
 
 ```
 
@@ -461,7 +461,7 @@ head(rs,10)
 
 (A.) Average Farm HH income and US HH income in Current $; (B.) Contribution of government payments to net farm sector income, in current dollars. Data: US BEA.
 
-```{r}
+```{r warning = F, message = F}
 #inflation adjust to 2019 dollars 
 
 hi <- read.csv("./data/table13-householdincome.csv")
@@ -488,7 +488,7 @@ library(blscrapeR)
 library(patchwork)
 
 df<-inflation_adjust(2019) #this pulls a table of adjustment values (adjustment to 2019 $) 
-glimpse(df) 
+#glimpse(df) 
 
 df$year<-as.numeric(df$year) 
 bea <- readRDS("./data/bea.RDS")
@@ -525,19 +525,19 @@ gov_port <- ggplot(sub, aes(x = YEAR)) +
 # Build panel plots!
 # (A.) net income 1969 (adjusted), (B.) net income 2019
 ggarrange(hi, gov_port, labels = c("A.", "B."), nrow = 2, font.label = list(size = 8))
-ggsave("./viz/Figure5.png", dpi = 400, width = 150, height = 160, units = "mm", bg = "white")
-ggsave("./figs/Figure5.jpg", dpi = 300, width = 150, height = 160, units = "mm", bg = "white")
+ggsave("./visualizations/PNG/Figure5.png", dpi = 400, width = 150, height = 160, units = "mm", bg = "white")
+ggsave("./visualizations/JPEG/Figure5.jpg", dpi = 300, width = 150, height = 160, units = "mm", bg = "white")
 ```
 
 ### Figure 6: 
 
 Net cash farm income of operations (measured in $/operation) reported by the USDA-NASS in A) 2002, and B) 2017. Data: USDA NASS Quickstats
-```{r}
+```{r warning = F, message = F}
 options(scipen = 100)
 library(blscrapeR) 
 
 df<-inflation_adjust(2017) #this pulls a table of adjustment values (adjustment to 2019 $) 
-glimpse(df) 
+#glimpse(df) 
 
 df$year<-as.numeric(df$year) 
 c <- readRDS("./data/contemp-coa.RDS")
@@ -548,8 +548,8 @@ dat$net_income_adj<-dat$net_income/dat$adj_value #this performs the actual dolla
 nc <- dat %>% filter(GEOID %in% counties$GEOID) %>% filter(year == 2017 | year == 2002) %>% filter(!is.na(net_income_adj))
 
 # STATS
-nc %>% filter(year == 2017, net_income < 0) %>% arrange(net_income_adj) # 441/3034 reporting counties
-nc %>% filter(year == 2002, net_income < 0) %>% arrange(net_income_adj) #413/3032
+t17 <- nc %>% filter(year == 2017, net_income < 0) %>% arrange(net_income_adj) # 441/3034 reporting counties
+t02 <- nc %>% filter(year == 2002, net_income < 0) %>% arrange(net_income_adj) #413/3032
 
 nc_sf <- merge(counties, nc, by = "GEOID")
 
@@ -597,14 +597,14 @@ ggplot(.) +
 # Build panel plots!
 # (A.) net income 1969 (adjusted), (B.) net income 2019
 ggarrange(nc_op02, nc_op17, labels = c("A.", "B."), font.label = list(size = 8), common.legend = TRUE, legend = "right")
-ggsave("./viz/Figure6.png", dpi = 400, width = 220, height = 60, units = "mm", bg = "white")
-ggsave("./figs/Figure6.jpg", dpi = 300, width = 200, height = 60, units = "mm", bg = "white")
+ggsave("./visualizations/PNG/Figure6.png", dpi = 400, width = 220, height = 60, units = "mm", bg = "white")
+ggsave("./visualizations/JPEG/Figure6.jpg", dpi = 300, width = 200, height = 60, units = "mm", bg = "white")
 ```
 
 ### Figure 7: 
 
 Realized net income of farmers in (A.) 1969 and (B.) 2019, adjusted to 2019 dollars. Net income is defined as total cash receipts from all farms less total production expenses and is analogous to USDA -NASS measures of net cash farm income. We visualize BEA realized net income data because it dates back to 1969 while USDA -NASS county-level data only dates back to 1997. Counties in which net income is negative (red) had average production expenses that surpassed total cash receipts. For instance, Parker, TX realized $17M in 1969, but -$67M in 2019. Data: US BEA.
-```{r}
+```{r warning = F, message = F}
 options(scipen = 100)
 library(blscrapeR) 
 
@@ -622,7 +622,7 @@ dat$net_income_adj<-dat$net_income/dat$adj_value #this performs the actual dolla
 i <- dat %>% filter(GEOID %in% counties$GEOID) %>% select(c(1:3,69)) %>% filter(!is.na(net_income_adj)) %>% mutate(net_income_adj = net_income_adj*1000)
 
 i_sf <- merge(counties, i, by = "GEOID")
-glimpse(i_sf)
+#glimpse(i_sf)
 
 # Pull quantiles
 q<- i_sf %>%
@@ -657,7 +657,7 @@ i <- bea %>% filter(GEOID %in% counties$GEOID, YEAR == 2019) %>% select(c(1:3,24
 median(i$net_income)
 
 i_sf <- merge(counties, i, by = "GEOID")
-glimpse(i_sf)
+#glimpse(i_sf)
 
 # Pull quantiles
 q<- i_sf %>%
@@ -686,8 +686,8 @@ ggplot(.) +
 # Build panel plots!
 # (A.) net income 1969 (adjusted), (B.) net income 2019
 ggarrange(income_69, income_19, labels = c("A.", "B."), font.label = list(size = 8), common.legend = TRUE, legend = "right")
-ggsave("./viz/Figure7.png", dpi = 400, width = 220, height = 60, units = "mm", bg = "white")
-ggsave("./figs/Figure7.jpg", dpi = 300, width = 200, height = 60, units = "mm", bg = "white")
+ggsave("./visualizations/PNG/Figure7.png", dpi = 400, width = 220, height = 60, units = "mm", bg = "white")
+ggsave("./visualizations/JPEG/Figure7.jpg", dpi = 300, width = 200, height = 60, units = "mm", bg = "white")
 # STATS
 # % counties reporting negative net income
 i <- bea %>% 
@@ -730,14 +730,14 @@ write.csv(companion, "./data/out-Figure7-companion.csv")
 ### Figure 8: 
 
 (A.) Percent of county agricultural acres covered by crop insurance in 2017; (B.) Dollars provided per agricultural acre in government payouts to farmers in 2017. In 2017, US farms received an average of $11.59/acre (median = $8.69/acre) in government payments and an estimated 31.1% (median = 23.9%) of all agricultural acres were covered by crop insurance (Figure 12). Data: USDA NASS.
-```{r}
+```{r warning = F, message = F}
 
 c <- readRDS("./data/contemp-coa.RDS")
 #### (A.) Percent of county acres covered by crop insurance in 2017
 # county-level, in most recent year
 i <- c %>% filter(GEOID %in% counties$GEOID, year == 2017) %>% mutate(perc_insur = insur_acres/tot_acres*100) %>% filter(!is.na(perc_insur))
 
-ave(i$perc_insur)
+unique(ave(i$perc_insur))
 median(i$perc_insur)
 #464 counties > 10%
 
@@ -771,7 +771,7 @@ ggplot(.) +
 # county-level, in most recent year
 p <- c %>% filter(GEOID %in% counties$GEOID, year == 2017) %>% mutate(gvt_acre = gvt_prog/tot_acres) %>% filter(!is.na(gvt_acre))
 
-ave(p$gvt_acre)
+unique(ave(p$gvt_acre))
 median(p$gvt_acre)
 #464 counties > 10%
 
@@ -805,14 +805,14 @@ ggplot(.) +
 # (A.) % acres covered by crop insurance, (B.) $/ag acre in government payouts
 library(ggpubr)
 ggarrange(perc_insur, gvt_acre, labels = c("A.", "B."), ncol = 2, font.label = list(size = 8))
-ggsave("./viz/Figure8.png", dpi = 400, units = "mm", width = 220, height = 60, bg = "white")
-ggsave("./figs/Figure8.jpg", dpi = 300, units = "mm", width = 200, height = 60, bg = "white")
+ggsave("./visualizations/PNG/Figure8.png", dpi = 400, units = "mm", width = 220, height = 60, bg = "white")
+ggsave("./visualizations/JPEG/Figure8.jpg", dpi = 300, units = "mm", width = 200, height = 60, bg = "white")
 ```
 
 ### Figure 9. 
 
 Per acre expenditure on agricultural inputs in 2017; county-level agricultural expense data standardized by a county's total agricultural acres. Data: USDA ERS BEA, and USDA COA QuickStats.
-```{r}
+```{r warning = F, message = F}
 # load data
 c <- readRDS("./data/contemp-coa.RDS")
 
@@ -854,15 +854,15 @@ ggplot(.) +
           legend.position="right",
           legend.key.size = unit(4, 'mm'))
 
-  ggsave("./viz/Figure9.png", dpi = 400, width = 110, height = 60, units = "mm", bg = "white")
-ggsave("./figs/Figure9.jpg", dpi = 300, width = 110, height = 60, units = "mm", bg = "white")
+  ggsave("./visualizations/PNG/Figure9.png", dpi = 400, width = 110, height = 60, units = "mm", bg = "white")
+  ggsave("./visualizations/JPEG/Figure9.jpg", dpi = 300, width = 110, height = 60, units = "mm", bg = "white")
 ```
 
 ### Figure 10. 
 
 Major commodity prices, adjusted using the price as paid index (PPITW) provided by the National Agriculture Statistics Service based on instruction for deflation from Jeff Gillespie, REE-ERS. Data: USDA ERS, 2021c
 
-```{r}
+```{r warning = F, message = F}
 hist <- readRDS("./data/hist_cws.RDS")
 recent <- readRDS("./data/recent_cws.RDS")
 
@@ -903,15 +903,15 @@ ggplot(price2 %>% filter(YEAR > 1990) %>% mutate(CROP = fct_relevel(CROP, "Soy",
        y = "$/bushel", 
        color = "")
 
-ggsave("./viz/Figure10.png", plot = last_plot(), dpi = 400, width = 130, height = 70, units = "mm")
-ggsave("./figs/Figure10.jpg", plot = last_plot(), dpi = 300, width = 130, height = 70, units = "mm")
+ggsave("./visualizations/PNG/Figure10.png", plot = last_plot(), dpi = 400, width = 130, height = 70, units = "mm")
+ggsave("./visualizations/JPEG/Figure10.jpg", plot = last_plot(), dpi = 300, width = 130, height = 70, units = "mm")
 ```
 
 ### Figure 11.
 
 Gross production value, total costs, and net production value for major commodity crops over the last 40 years. Data: USDA ERS, 2021c 
 
-```{r}
+```{r warning = F, message = F}
 pxnviz <- rbind.data.frame(net_value, total_cost, total_pxn) %>% 
   select(YEAR, VALUE, CROP, VAR) 
 
@@ -936,14 +936,14 @@ ggplot(pxnviz %>% filter(YEAR > 1990) %>%
   xlim(c(1989, 2021))
 
 
-ggsave("./viz/Figure11.png", plot = last_plot(), dpi = 400, width = 140, height = 70, units = "mm")
-ggsave("./figs/Figure11.jpg", plot = last_plot(), dpi = 300, width = 140, height = 70, units = "mm")
+ggsave("./visualizations/PNG/Figure11.png", plot = last_plot(), dpi = 400, width = 140, height = 70, units = "mm")
+ggsave("./visualizations/JPEG/Figure11.jpg", plot = last_plot(), dpi = 300, width = 140, height = 70, units = "mm")
 ```
 
 ### Figure 12: 
 
 A. Percent agricultural acres operated by principal operators who own the land they work in 2017. B. Percent agricultural acres operated by principal operators who rent the land they work (i.e. tenants) in 2017. Data: USDA QuickStats, 2017 COA.
-```{r}
+```{r warning = F, message = F}
 # load data
 c <- readRDS("./data/contemp-coa.RDS")
 
@@ -1029,15 +1029,15 @@ owners <- ggplot(data = df) +
 # Build panel plots!
 # (A.) % full owners, (B.) % tenants
 ggarrange(owners, tenants, labels = c("A.", "B."), ncol = 2, font.label = list(size = 8))
-ggsave("./viz/Figure12.png", dpi = 400, width = 220, height = 60, units = "mm", bg = "white")
-ggsave("./figs/Figure12.jpg", dpi = 300, width = 200, height = 60, units = "mm", bg = "white")
+ggsave("./visualizations/PNG/Figure12.png", dpi = 400, width = 220, height = 60, units = "mm", bg = "white")
+ggsave("./visualizations/JPEG/Figure12.jpg", dpi = 300, width = 200, height = 60, units = "mm", bg = "white")
 ```
 
 ### Figure 13: 
 
 Proportion ownership of land by race from 1900 to 2017. In each year the left column shows the proportion of land owned and rented by POC, and the right, by White operators. Due to data limitations (i.e. historical lack of intersectionality in data collection) we can only visualize White versus all Other races. Data: Robert Hoppe, USDA ERS.
 
-```{r}
+```{r warning = F, message = F}
 
 h <- read.csv("./data/historical-coa.csv")
 
@@ -1072,8 +1072,8 @@ ggplot(t, aes(x = race, y=count , fill=type, alpha = factor(alpharace))) +
   facet_wrap(~year,nrow=1, strip.position = "bottom") +
     labs(title = "", color = "", y = "", x = "") 
 
- ggsave('./viz/Figure13.png', dpi = 400, width = 9.5, height = 5, bg = "white") 
-  ggsave('./figs/Figure13.jpg', dpi = 300, width = 9.5, height = 5, bg = "white") 
+ ggsave('./visualizations/PNG/Figure13.png', dpi = 400, width = 9.5, height = 5, bg = "white") 
+  ggsave('./visualizations/JPEG/Figure13.jpg', dpi = 300, width = 9.5, height = 5, bg = "white") 
 ### NOTE: must bring image out of R and in to editing software (we are using Inkscape) to build matrix legend you see in manuscript!
 ```
 
@@ -1111,8 +1111,8 @@ ggplot(.) +
   project_theme +
   theme(legend.position="bottom") 
 
-  ggsave("./viz/Figure14.png", dpi = 400, width = 150, height = 90, units = "mm")
-  ggsave("./figs/Figure14.jpg", dpi = 300, width = 150, height = 90, units = "mm")
+  ggsave("./visualizations/PNG/Figure14.png", dpi = 400, width = 150, height = 90, units = "mm")
+  ggsave("./visualizations/JPEG/Figure14.jpg", dpi = 300, width = 150, height = 90, units = "mm")
 ```
 
 
