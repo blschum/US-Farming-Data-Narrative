@@ -17,15 +17,15 @@ We hope these clean datasets will be used in future research to further elucidat
 
 | visualizations
 
-  |- data
+    |- data
   
-    - adjustment.xlsx
+        - adjustment.xlsx
     
-    - bea.RDS
+        - bea.RDS
     
-    - coa-ownership.xlsx
+        - coa-ownership.xlsx
     
-    - coa-race.RDS
+        - coa-race.RDS
     
     - coa-VARS.RDS
     - commodities-per-farm.xlsx
