@@ -1,5 +1,5 @@
 # US-Farming-Data-Narrative
-Data prep and visualizations for 'The State of US Farm Operator Livelihoods' under review at *Frontiers in Sustainable Food Systems*.
+Data prep and visualizations for 'The State of US Farm Operator Livelihoods' published in *Frontiers in Sustainable Food Systems*, Feb. 2022. https://doi.org/10.3389/fsufs.2021.795901.
 
 ## Data Repository & Reproducibility Statement
 
